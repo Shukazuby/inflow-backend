@@ -4,6 +4,7 @@ import { AppService } from './app.service';
 import { ConfigModule } from '@nestjs/config';
 import { AppConfig } from './config';
 import { PrismaModule, loggingMiddleware } from 'nestjs-prisma';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { PrismaModule, loggingMiddleware } from 'nestjs-prisma';
           ],
         },
       }),
+      AuthModule,
   
   ],
   controllers: [AppController],
