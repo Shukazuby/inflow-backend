@@ -14,13 +14,16 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  username  String   @unique
-  email     String?  @unique
-  role      UserRole
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  wallets   Wallet[] @relation("UserWallets") // This is fine
+  id        String    @id @default(uuid())
+  username  String    @unique
+  email     String?   @unique
+  password  String?
+  refreshToken  String?   
+  role      UserRole  @default(USER)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  wallets   Wallet[]  @relation("UserWallets") 
+  revokedTokens RevokedToken[]
 }
 
 model Wallet {
@@ -32,6 +35,16 @@ model Wallet {
   user      User    @relation("UserWallets", fields: [userId], references: [id]) 
   
 }
+
+model RevokedToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  revokedAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id])
+}
+
 enum UserRole {
   USER
   CREATOR
