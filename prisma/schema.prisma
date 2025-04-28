@@ -18,11 +18,14 @@ model User {
   username  String    @unique
   email     String?   @unique
   password  String?
-  refreshToken  String?   
+  refreshToken  String?
+  bio       String?
+  avatarUrl String?
+  preferences String?
   role      UserRole  @default(USER)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
-  wallets   Wallet[]  @relation("UserWallets") 
+  wallets   Wallet[]  @relation("UserWallets")
   revokedTokens RevokedToken[]
 }
 
