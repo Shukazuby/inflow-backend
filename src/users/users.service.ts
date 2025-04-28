@@ -25,7 +25,7 @@ export class UsersService {
   ): Promise<Omit<User, 'password' | 'refreshToken'>> {
     const user = await this.prisma.user.findUnique({
       where: { id },
-      select: selectSafeUserFields,
+      // select: selectSafeUserFields,
     });
     if (!user) {
       throw new NotFoundException(`User with ID "${id}" not found`);

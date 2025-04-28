@@ -4,7 +4,7 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  const PORT = parseInt(process.env.PORT, 10) || 3001;
+  const PORT = parseInt(process.env.PORT, 10) || 3005;
 
   const config = new DocumentBuilder()
     .setTitle('InFlow backend')

@@ -22,12 +22,13 @@ export class AuthService {
   ) { }
 
   async signup(dto: SignupDto) {
+    const normalizedUsername = dto.username.toLowerCase(); // Normalize username
     const userExists = await this.prisma.user.findFirst({
       where: {
         OR: [
           { email: dto.email },
-          { username: dto.username },
-        ],
+          { username: normalizedUsername },
+        ]
       },
     });
 
@@ -50,12 +51,7 @@ export class AuthService {
     await this.updateRefreshToken(user.id, tokens.refreshToken);
 
     return {
-      user: {
-        id: user.id,
-        email: user.email,
-        username: user.username,
-        role: user.role,
-      },
+      user,
       ...tokens,
     };
   }
@@ -82,14 +78,9 @@ export class AuthService {
     await this.updateRefreshToken(user.id, tokens.refreshToken);
 
     return {
-      user: {
-        id: user.id,
-        email: user.email,
-        username: user.username,
-        role: user.role,
-      },
-      ...tokens,
-    };
+      user,
+      ...tokens
+    }
   }
 
   async logout(userId: string) {
@@ -97,10 +88,10 @@ export class AuthService {
     await this.prisma.revokedToken.create({
       data: {
         token: user.refreshToken,
-        userId,
+        userId
       },
     });
-    return { return: user, message: 'Logged out successfully' };
+    return {  user, message: 'Logged out successfully' };
   }
 
   async getMe(userId: string) {
@@ -111,13 +102,7 @@ export class AuthService {
 
     if (!user) throw new UnauthorizedException('User not found');
 
-    return {
-      id: user.id,
-      email: user.email,
-      username: user.username,
-      role: user.role,
-      wallets: user.wallets ?? [],
-    };
+    return user
   }
 
   async getTokens(userId: string, email: string) {
