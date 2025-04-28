@@ -21,7 +21,11 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     if (!user) throw new UnauthorizedException('User not found');
 
     // Strip sensitive fields before attaching to request
-    const { password, refreshToken, ...safeUser } = user;
+    const {
+      password: _password,
+      refreshToken: _refreshToken,
+      ...safeUser
+    } = user;
 
     return safeUser;
   }
