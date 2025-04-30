@@ -6,6 +6,7 @@ import { AppConfig } from './config';
 import { PrismaModule, loggingMiddleware } from 'nestjs-prisma';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
+import { CacheModule } from '@nestjs/cache-manager';
 
 @Module({
   imports: [
@@ -24,6 +25,10 @@ import { UsersModule } from './users/users.module';
             }),
           ],
         },
+      }),
+      CacheModule.register({
+        isGlobal: true,
+        ttl: 60 * 5, // 5 minutes cache TTL
       }),
       AuthModule,
       UsersModule,

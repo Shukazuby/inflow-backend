@@ -27,6 +27,13 @@ model User {
   updatedAt DateTime  @updatedAt
   wallets   Wallet[]  @relation("UserWallets")
   revokedTokens RevokedToken[]
+  
+  // Relations for user stats
+  followers Follow[] @relation("UserFollowers")
+  following Follow[] @relation("UserFollowing")
+  posts     Post[]   @relation("UserPosts")
+  tipsReceived Tip[] @relation("TipsReceived")
+  tipsSent  Tip[] @relation("TipsSent")
 }
 
 model Wallet {
@@ -36,7 +43,6 @@ model Wallet {
   isPrimary Boolean @default(false)
   createdAt DateTime @default(now())
   user      User    @relation("UserWallets", fields: [userId], references: [id]) 
-  
 }
 
 model RevokedToken {
@@ -46,6 +52,44 @@ model RevokedToken {
   revokedAt DateTime @default(now())
 
   user      User     @relation(fields: [userId], references: [id])
+}
+
+// New models for user stats
+
+model Follow {
+  id          String   @id @default(uuid())
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+  
+  follower    User     @relation("UserFollowing", fields: [followerId], references: [id])
+  following   User     @relation("UserFollowers", fields: [followingId], references: [id])
+
+  @@unique([followerId, followingId])
+}
+
+model Post {
+  id        String   @id @default(uuid())
+  userId    String
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  user      User     @relation("UserPosts", fields: [userId], references: [id])
+  tips      Tip[]    @relation("PostTips")
+}
+
+model Tip {
+  id        String   @id @default(uuid())
+  amount    Float
+  senderId  String
+  receiverId String
+  postId    String?
+  createdAt DateTime @default(now())
+  
+  sender    User     @relation("TipsSent", fields: [senderId], references: [id])
+  receiver  User     @relation("TipsReceived", fields: [receiverId], references: [id])
+  post      Post?    @relation("PostTips", fields: [postId], references: [id])
 }
 
 enum UserRole {
