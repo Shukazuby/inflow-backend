@@ -1,42 +1,38 @@
-import { Body, Controller, Get, HttpCode, Post, Request, UnauthorizedException, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, Post, Request, UseGuards } from "@nestjs/common";
 import { JwtAuthGuard } from "src/guards/jwt.strategy";
 import { WalletService } from "./wallet.service";
 import { DisconnectWalletDto } from "./dto/wallet.dto";
 import { Request as ExpressRequest } from "express";
+import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
 
-interface AuthenticatedRequest extends ExpressRequest {
-  user: {
-    userId: string;
-  };
-}
-
-
+@ApiTags('Wallet')
 @Controller('auth/wallet')
-@UseGuards(JwtAuthGuard)
 export class WalletController {
   constructor(private walletService: WalletService) { }
 
   @Post('disconnect')
+  @ApiBearerAuth('jwt-auth')
+  @UseGuards(JwtAuthGuard)
   @HttpCode(204)
   async disconnectWallet(
-    @Request() req: AuthenticatedRequest,
+    @Request() req: ExpressRequest,
     @Body() dto: DisconnectWalletDto,
   ) {
-    // Grab raw token and revoke
-    const rawToken = req.headers.authorization?.split(' ')[1];
-    if (!rawToken) {
-      throw new UnauthorizedException('Authorization token not found');
-    }
-
     await this.walletService.disconnectWallet(
-      req.user.userId,
+      req['user'].id,
       dto.address
     );
   }
 
   @Get('status')
-  async walletStatus(@Request() req: AuthenticatedRequest) {
-    const statusData = await this.walletService.getWalletStatus(req.user.userId);
+  @ApiBearerAuth('jwt-auth')
+  @UseGuards(JwtAuthGuard)
+  async walletStatus(
+    @Request() req: ExpressRequest,
+  ) {
+    const statusData = await this.walletService.getWalletStatus(
+      req['user'].id,
+    );
     return { status: 'success', data: statusData }
   }
 }
