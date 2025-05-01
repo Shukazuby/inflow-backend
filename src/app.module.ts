@@ -7,6 +7,7 @@ import { PrismaModule, loggingMiddleware } from 'nestjs-prisma';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { CacheModule } from '@nestjs/cache-manager';
+import { WalletModule } from './wallet/wallet.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { CacheModule } from '@nestjs/cache-manager';
       }),
       AuthModule,
       UsersModule,
+      WalletModule,
   
   ],
   controllers: [AppController],
