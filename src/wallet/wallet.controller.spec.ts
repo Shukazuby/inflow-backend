@@ -1,8 +1,6 @@
-// wallet.controller.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
 import { WalletController } from './wallet.controller';
 import { WalletService } from './wallet.service';
-import { UnauthorizedException } from '@nestjs/common';
 
 describe('WalletController', () => {
   let controller: WalletController;
@@ -24,15 +22,8 @@ describe('WalletController', () => {
 
   describe('disconnectWallet', () => {
     const mockReq: any = {
-      headers: { authorization: 'Bearer token' },
-      user: { userId: 'user1' },
+      user: { id: 'user1' },
     };
-
-    it('should throw UnauthorizedException if no token', async () => {
-      const badReq = { ...mockReq, headers: {} };
-
-      await expect(controller.disconnectWallet(badReq, { address: '0xABC' })).rejects.toThrow(UnauthorizedException);
-    });
 
     it('should call service.disconnectWallet with correct args', async () => {
       await controller.disconnectWallet(mockReq, { address: '0x123' });

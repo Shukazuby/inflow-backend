@@ -52,7 +52,7 @@ export class WalletService {
     };
   }
 
-  async connectWallet(address: string, signature: string) {
+  async connectWallet(address: string, signature: StarknetSignature) {
 
     // find address in the latest nonce
     const record = await this.prisma.nonce.findFirst({
