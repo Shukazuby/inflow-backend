@@ -40,7 +40,8 @@
     "passport-jwt": "^4.0.1",
     "rate-limiter-flexible": "^7.0.0",
     "reflect-metadata": "^0.2.0",
-    "rxjs": "^7.8.1"
+    "rxjs": "^7.8.1",
+    "starknet": "^6.24.1"
   },
   "devDependencies": {
     "@nestjs/cli": "^10.0.0",

@@ -92,6 +92,17 @@ model Tip {
   post      Post?    @relation("PostTips", fields: [postId], references: [id])
 }
 
+// Nonce table for tracking one-time nonces
+model Nonce {
+  id        String   @id @default(uuid())
+  address   String
+  nonce     String
+  createdAt DateTime @default(now())
+  expiresAt DateTime?
+
+  @@unique([address])
+}
+
 enum UserRole {
   USER
   CREATOR
