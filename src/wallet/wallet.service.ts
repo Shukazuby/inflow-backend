@@ -3,7 +3,6 @@ import { PrismaService } from "nestjs-prisma";
 import { randomBytes } from "crypto";
 import { JwtService } from "@nestjs/jwt";
 import { verifySignature, StarknetSignature } from "src/utils/starknet.utils";
-import { ec } from "starknet";
 
 @Injectable()
 export class WalletService {
@@ -57,7 +56,10 @@ export class WalletService {
 
     // find address in the latest nonce
     const record = await this.prisma.nonce.findFirst({
-      where: { address },
+      where: {
+        address,
+        expiresAt: { gt: new Date() }
+      },
       orderBy: { createdAt: 'desc' }
     });
 
@@ -73,7 +75,7 @@ export class WalletService {
     // Immediately invalidate nonce
     await this.prisma.nonce.delete({ where: { id: record.id } });
 
-    // create user if not available
+    // Find or create user (Nested, through wallet)if not available
     let wallet = await this.prisma.wallet.findUnique({
       where: { address },
       include: { user: true },
@@ -106,8 +108,14 @@ export class WalletService {
 
     // Generate 32-char hex string for nonce
     const nonce = randomBytes(16).toString('hex');
-    await this.prisma.nonce.create({
-      data: { address, nonce }
+    // Valid for 5 mins
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+
+    // Update nonce with address if found, create otherwise
+    await this.prisma.nonce.upsert({
+      where: { address },
+      update: { nonce, createdAt: new Date(), expiresAt },
+      create: { address, nonce, expiresAt },
     });
 
     return { nonce };
