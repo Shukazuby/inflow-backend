@@ -1,10 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { WalletService } from './wallet.service';
 import { PrismaService } from 'nestjs-prisma';
+import { JwtService } from '@nestjs/jwt';
+import { sign } from 'crypto';
 
 describe('WalletService', () => {
   let service: WalletService;
-  // let prisma: Partial<Record<keyof PrismaService, jest.Mock>>;
 
   const prismaMock = {
     wallet: {
@@ -22,13 +23,20 @@ describe('WalletService', () => {
   };
 
   beforeEach(async () => {
+    // const module: TestingModule = await Test.createTestingModule({
+    //   providers: [
+    //     WalletService,
+    //     {
+    //       provide: PrismaService,
+    //       useValue: prismaMock,
+    //     },
+    //   ],
+    // }).compile();
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         WalletService,
-        {
-          provide: PrismaService,
-          useValue: prismaMock,
-        },
+        { provide: PrismaService, useValue: prismaMock },
+        { provide: JwtService, useValue: { sign: jest.fn() } },
       ],
     }).compile();
 

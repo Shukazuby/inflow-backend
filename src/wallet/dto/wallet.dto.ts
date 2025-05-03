@@ -17,3 +17,25 @@ export class WalletStatusDto {
   @IsString()
   address: string;
 }
+
+export class RequestNonceDto {
+  @ApiProperty({ example: '0x123...', description: 'User wallet address' })
+  @IsString()
+  address: string;
+}
+
+export class ConnectWalletDto {
+  @ApiProperty({
+    example: '0x123...def',
+    description: 'User wallet address'
+  })
+  @IsString()
+  address: string;
+
+  @ApiProperty({
+    example: '0xdeadbeef...123',
+    description: 'signature of nonce signed by user wallet'
+  })
+  @IsString()
+  signature: string;
+}

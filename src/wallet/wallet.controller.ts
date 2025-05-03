@@ -1,7 +1,7 @@
 import { Body, Controller, Get, HttpCode, Post, Request, UseGuards } from "@nestjs/common";
 import { JwtAuthGuard } from "src/guards/jwt.strategy";
 import { WalletService } from "./wallet.service";
-import { DisconnectWalletDto } from "./dto/wallet.dto";
+import { ConnectWalletDto, DisconnectWalletDto, RequestNonceDto } from "./dto/wallet.dto";
 import { Request as ExpressRequest } from "express";
 import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
 
@@ -35,4 +35,19 @@ export class WalletController {
     );
     return { status: 'success', data: statusData }
   }
+
+  @Post('connect')
+  async connectWallet(
+    @Body() dto: ConnectWalletDto
+  ) {
+    return this.walletService.connectWallet(dto.address, dto.signature);
+  }
+
+  @Post('request-nonce')
+  async requestNonce(
+    @Body() dto: RequestNonceDto
+  ) {
+    return this.walletService.requestNonce(dto.address);
+  }
+
 }
