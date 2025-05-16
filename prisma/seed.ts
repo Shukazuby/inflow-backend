@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Visibility } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
@@ -16,7 +16,7 @@ async function main() {
 
   // Create users
   const password = await bcrypt.hash('password123', 10);
-  
+
   const user1 = await prisma.user.create({
     data: {
       username: 'testuser1',
@@ -69,11 +69,20 @@ async function main() {
     },
   });
 
+  const defaultPostData = {
+    title: 'Untitled Post',
+    media: null,
+    tags: [],
+    category: 'General',
+    visibility: 'public' as Visibility,
+  };
+
   // Create posts
   const post1 = await prisma.post.create({
     data: {
       userId: user1.id,
       content: 'This is post 1 by user 1',
+      ...defaultPostData,
     },
   });
 
@@ -81,6 +90,7 @@ async function main() {
     data: {
       userId: user1.id,
       content: 'This is post 2 by user 1',
+      ...defaultPostData,
     },
   });
 
@@ -88,6 +98,7 @@ async function main() {
     data: {
       userId: user2.id,
       content: 'This is post 1 by user 2',
+      ...defaultPostData,
     },
   });
 

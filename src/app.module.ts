@@ -8,6 +8,7 @@ import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { CacheModule } from '@nestjs/cache-manager';
 import { WalletModule } from './wallet/wallet.module';
+import { PostModule } from './post/post.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { WalletModule } from './wallet/wallet.module';
       AuthModule,
       UsersModule,
       WalletModule,
+      PostModule,
   
   ],
   controllers: [AppController],
