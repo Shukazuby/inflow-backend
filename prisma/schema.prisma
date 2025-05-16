@@ -68,15 +68,25 @@ model Follow {
   @@unique([followerId, followingId])
 }
 
+enum Visibility {
+  public
+  private
+  followers_only
+}
+
 model Post {
-  id        String   @id @default(uuid())
-  userId    String
-  content   String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
-  user      User     @relation("UserPosts", fields: [userId], references: [id])
-  tips      Tip[]    @relation("PostTips")
+  id         String     @id @default(uuid())
+  userId     String
+  content    String
+  media      String?
+  tags       String[]
+  category   String
+  visibility Visibility @default(public)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  user       User       @relation("UserPosts", fields: [userId], references: [id])
+  tips       Tip[]      @relation("PostTips")
 }
 
 model Tip {
