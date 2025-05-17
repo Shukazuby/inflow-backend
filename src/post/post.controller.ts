@@ -8,12 +8,19 @@ import {
   Delete,
   UseGuards,
   Request,
+  HttpStatus,
 } from '@nestjs/common';
 import { PostService } from './post.service';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { Request as ExpressRequest } from 'express';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiParam,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/guards/jwt.strategy';
 
 @ApiTags('Post')
@@ -38,9 +45,30 @@ export class PostController {
     return this.postService.findOne(+id);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updatePostDto: UpdatePostDto) {
-    return this.postService.update(+id, updatePostDto);
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update a post' })
+  @ApiParam({ name: 'id', description: 'Post ID', example: 'abc123' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Post has been successfully updated.',
+  })
+  @ApiResponse({
+    status: HttpStatus.FORBIDDEN,
+    description: 'You can only edit your own posts.',
+  })
+  @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Post not found.' })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'Unauthorized.',
+  })
+  update(
+    @Param('id') id: string, // Changed from ParseIntPipe to string
+    @Body() updatePostDto: UpdatePostDto,
+    @Request() req,
+  ) {
+    return this.postService.update(id, updatePostDto, req.user.id);
   }
 
   @Delete(':id')

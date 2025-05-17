@@ -53,8 +53,15 @@ describe('WalletService (Auth Flow)', () => {
 
       expect(prismaMock.nonce.upsert).toHaveBeenCalledWith({
         where: { address },
-        update: expect.objectContaining({ nonce: expect.any(String), expiresAt: expect.any(Date) }),
-        create: expect.objectContaining({ address, nonce: expect.any(String), expiresAt: expect.any(Date) }),
+        update: expect.objectContaining({
+          nonce: expect.any(String),
+          expiresAt: expect.any(Date),
+        }),
+        create: expect.objectContaining({
+          address,
+          nonce: expect.any(String),
+          expiresAt: expect.any(Date),
+        }),
       });
       expect(result).toHaveProperty('nonce', expect.any(String));
     });
@@ -66,36 +73,67 @@ describe('WalletService (Auth Flow)', () => {
 
     it('should throw if no nonce record found', async () => {
       prismaMock.nonce.findFirst.mockResolvedValue(null);
-      await expect(service.connectWallet(address, signature as any)).rejects.toThrow(UnauthorizedException);
+      await expect(
+        service.connectWallet(address, signature as any),
+      ).rejects.toThrow(UnauthorizedException);
     });
 
     it('should throw if signature invalid', async () => {
-      prismaMock.nonce.findFirst.mockResolvedValue({ id: '1', nonce: 'n', expiresAt: new Date(Date.now() + 1000) });
+      prismaMock.nonce.findFirst.mockResolvedValue({
+        id: '1',
+        nonce: 'n',
+        expiresAt: new Date(Date.now() + 1000),
+      });
       (verifySignature as jest.Mock).mockReturnValue(false);
-      await expect(service.connectWallet(address, signature as any)).rejects.toThrow(UnauthorizedException);
+      await expect(
+        service.connectWallet(address, signature as any),
+      ).rejects.toThrow(UnauthorizedException);
     });
 
     it('should sign in existing wallet user and return token', async () => {
-      const record = { id: '1', nonce: 'n', expiresAt: new Date(Date.now() + 1000) };
+      const record = {
+        id: '1',
+        nonce: 'n',
+        expiresAt: new Date(Date.now() + 1000),
+      };
       prismaMock.nonce.findFirst.mockResolvedValue(record);
       (verifySignature as jest.Mock).mockReturnValue(true);
-      prismaMock.wallet.findUnique.mockResolvedValue({ id: 'w1', address, user: { id: 'u1', username: 'u' } });
+      prismaMock.wallet.findUnique.mockResolvedValue({
+        id: 'w1',
+        address,
+        user: { id: 'u1', username: 'u' },
+      });
 
       const result = await service.connectWallet(address, signature as any);
 
-      expect(prismaMock.nonce.delete).toHaveBeenCalledWith({ where: { id: '1' } });
-      expect(prismaMock.wallet.findUnique).toHaveBeenCalledWith({ where: { address }, include: { user: true } });
-      expect(jwtMock.sign).toHaveBeenCalledWith({ sub: 'u1', wallet: 'w1', address });
+      expect(prismaMock.nonce.delete).toHaveBeenCalledWith({
+        where: { id: '1' },
+      });
+      expect(prismaMock.wallet.findUnique).toHaveBeenCalledWith({
+        where: { address },
+        include: { user: true },
+      });
+      expect(jwtMock.sign).toHaveBeenCalledWith({
+        sub: 'u1',
+        wallet: 'w1',
+        address,
+      });
       expect(result).toEqual({ token: 'signed-jwt' });
     });
 
     it('should create new wallet and user if none exists and return token', async () => {
-      const record = { id: '2', nonce: 'n2', expiresAt: new Date(Date.now() + 1000) };
+      const record = {
+        id: '2',
+        nonce: 'n2',
+        expiresAt: new Date(Date.now() + 1000),
+      };
       prismaMock.nonce.findFirst.mockResolvedValue(record);
       (verifySignature as jest.Mock).mockReturnValue(true);
       prismaMock.wallet.findUnique.mockResolvedValue(null);
       prismaMock.wallet.create.mockResolvedValue({
-        id: 'w2', address, user: { id: 'u2', username: address },
+        id: 'w2',
+        address,
+        user: { id: 'u2', username: address },
       });
 
       const result = await service.connectWallet(address, signature as any);
@@ -104,7 +142,11 @@ describe('WalletService (Auth Flow)', () => {
         data: { address, user: { create: { username: address } } },
         include: { user: true },
       });
-      expect(jwtMock.sign).toHaveBeenCalledWith({ sub: 'u2', wallet: 'w2', address });
+      expect(jwtMock.sign).toHaveBeenCalledWith({
+        sub: 'u2',
+        wallet: 'w2',
+        address,
+      });
       expect(result).toEqual({ token: 'signed-jwt' });
     });
   });

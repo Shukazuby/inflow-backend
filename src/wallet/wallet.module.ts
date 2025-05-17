@@ -5,10 +5,8 @@ import { WalletService } from './wallet.service';
 import { JwtService } from '@nestjs/jwt';
 
 @Module({
-  imports: [
-    PrismaModule,
-  ],
+  imports: [PrismaModule],
   controllers: [WalletController],
-  providers: [WalletService, JwtService]
+  providers: [WalletService, JwtService],
 })
-export class WalletModule { }
+export class WalletModule {}

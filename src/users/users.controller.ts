@@ -14,7 +14,12 @@ import { UsersService } from './users.service';
 import { UpdateUserDto } from './dto/UpdateUser.dto';
 import { JwtAuthGuard } from 'src/guards/jwt.strategy'; // Assuming JwtAuthGuard is exported from here
 import { Request } from 'express';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { UserStatsDto } from './dto/UserStats.dto';
 
 // Define a type for the user object attached to the request by JwtAuthGuard
@@ -31,7 +36,7 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Get(':id')
- async findOneById(@Param('id') id: string) {
+  async findOneById(@Param('id') id: string) {
     return await this.usersService.findOneById(id);
   }
 
@@ -60,10 +65,10 @@ export class UsersController {
 
   @Get(':id/stats')
   @ApiOperation({ summary: 'Get user statistics' })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'Returns user statistics for profile and rankings',
-    type: UserStatsDto 
+    type: UserStatsDto,
   })
   async getUserStats(@Param('id') id: string) {
     return await this.usersService.getUserStats(id);

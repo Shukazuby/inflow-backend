@@ -1,4 +1,4 @@
-import { ec, hash } from "starknet";
+import { ec, hash } from 'starknet';
 
 // Make a type union of the 2 signature shapes and export
 export type StarknetSignature = string | [string, string];
@@ -18,16 +18,16 @@ function isTuple(sig: StarknetSignature): sig is [string, string] {
 export function verifySignature(
   nonce: string,
   signature: StarknetSignature,
-  address: string
+  address: string,
 ) {
   // const messageHash = hash.starknetKeccak(nonce);
   // const msgHash = '0x' + messageHash.toString(16);
-  const messageHash = hash.keccakBn(nonce)
+  const messageHash = hash.keccakBn(nonce);
 
   if (isTuple(signature)) {
-    // Convert ["rHex","sHex"] to 
-    let sigHex = signature[0] + signature[1].replace(/^0x/, '')
-    return ec.starkCurve.verify(sigHex, messageHash, address)
+    // Convert ["rHex","sHex"] to
+    let sigHex = signature[0] + signature[1].replace(/^0x/, '');
+    return ec.starkCurve.verify(sigHex, messageHash, address);
   } else {
     return ec.starkCurve.verify(signature, messageHash, address);
   }

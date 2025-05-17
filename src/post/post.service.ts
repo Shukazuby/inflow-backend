@@ -1,4 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { PrismaService } from 'nestjs-prisma';
@@ -48,8 +53,36 @@ export class PostService {
     return `This action returns a #${id} post`;
   }
 
-  update(id: number, updatePostDto: UpdatePostDto) {
-    return `This action updates a #${id} post`;
+  async update(id: string, updatePostDto: UpdatePostDto, userId: string) {
+    const post = await this.prisma.post.findUnique({
+      where: { id },
+    });
+
+    if (!post) {
+      throw new NotFoundException(`Post with ID ${id} not found`);
+    }
+
+    // Check if the current user is the author of the post
+    if (post.userId !== userId) {
+      // Changed from authorId to userId
+      throw new ForbiddenException('You can only edit your own posts');
+    }
+
+    // If validation passes, update the post
+    return this.prisma.post.update({
+      where: { id },
+      data: updatePostDto,
+      include: {
+        user: {
+          // Change from author to user
+          select: {
+            id: true,
+            username: true,
+            avatarUrl: true, // Changed from profilePicture
+          },
+        },
+      },
+    });
   }
 
   remove(id: number) {
