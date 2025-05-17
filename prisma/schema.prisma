@@ -81,6 +81,8 @@ model Post {
   media      String?
   tags       String[]
   category   String
+  isMinted   Boolean @default(false)
+  
   visibility Visibility @default(public)
   createdAt  DateTime   @default(now())
   updatedAt  DateTime   @updatedAt

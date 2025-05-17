@@ -18,6 +18,11 @@ export class PostService {
         throw new Error(`Invalid visibility value: ${visibility}`);
       }
 
+      let minted = false
+      if(mint){
+        minted = mint
+      }
+
       const post = await this.prisma.post.create({
         data: {
           userId,
@@ -26,6 +31,7 @@ export class PostService {
           tags,
           category,
           visibility,
+          isMinted: minted
         },
       });
 
@@ -62,16 +68,7 @@ export class PostService {
         throw new NotFoundException(`Post with ID ${id} not found`);
       }
 
-      // Check if the post has an associated NFT - for this implementation
-      // we'll need to check if post has any property indicating it's an NFT
-      // Since the schema doesn't explicitly show this, we'll need to assume
-      // a method exists to determine this
-
-      // Placeholder for NFT detection - this would normally connect to your
-      // blockchain or NFT service to check if this post has a minted NFT
-      const isNFT = true; // Replace with actual NFT detection logic when implemented
-
-      if (isNFT) {
+      if (post.isMinted) {
         // If it's an NFT, we need to burn it on-chain before deletion
         try {
           // TODO: Implement the on-chain burn operation
@@ -90,7 +87,7 @@ export class PostService {
           });
 
           return {
-            message: `NFT post with ID ${id} has been successfully burned and deleted`,
+            message: `NFT post burned and deleted`,
           };
         } catch (burnError) {
           // If burn operation fails, log the error and throw it to trigger rollback
@@ -104,7 +101,7 @@ export class PostService {
         });
 
         return {
-          message: `Post with ID ${id} has been successfully deleted`,
+          message: `Post deleted`,
         };
       }
     } catch (error) {
