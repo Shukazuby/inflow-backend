@@ -12,4 +12,4 @@ export class UserStatsDto {
 
   @ApiProperty({ description: 'The total amount of tips received by the user' })
   totalTipsReceived: number;
-} 
+}

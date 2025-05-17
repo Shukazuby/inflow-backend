@@ -1,5 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsArray, IsBoolean, IsEnum, IsOptional, IsString } from 'class-validator';
+import {
+  IsArray,
+  IsBoolean,
+  IsEnum,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 
 export enum Visibility {
   PUBLIC = 'public',
@@ -8,7 +14,7 @@ export enum Visibility {
 }
 
 export class CreatePostDto {
-@ApiProperty()
+  @ApiProperty()
   @IsString()
   content: string;
 
@@ -29,8 +35,7 @@ export class CreatePostDto {
   @ApiProperty({
     required: false,
     type: String,
-    enum: Visibility
-
+    enum: Visibility,
   })
   @IsEnum(Visibility)
   visibility: Visibility;

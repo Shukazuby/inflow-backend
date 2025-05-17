@@ -1,27 +1,27 @@
-import { Injectable, UnauthorizedException } from "@nestjs/common";
-import { PrismaService } from "nestjs-prisma";
-import { randomBytes } from "crypto";
-import { JwtService } from "@nestjs/jwt";
-import { verifySignature, StarknetSignature } from "src/utils/starknet.utils";
+import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { PrismaService } from 'nestjs-prisma';
+import { randomBytes } from 'crypto';
+import { JwtService } from '@nestjs/jwt';
+import { verifySignature, StarknetSignature } from 'src/utils/starknet.utils';
 
 @Injectable()
 export class WalletService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
-  ) { }
+  ) {}
 
   async disconnectWallet(userId: string, address?: string) {
     try {
       if (address) {
         await this.prisma.wallet.deleteMany({
-          where: { userId, address }
+          where: { userId, address },
         });
       } else {
         // Drop all if no address is provided
         await this.prisma.wallet.updateMany({
           where: { userId, isPrimary: true },
-          data: { isPrimary: false }
+          data: { isPrimary: false },
         });
       }
 
@@ -48,19 +48,18 @@ export class WalletService {
     });
     return {
       connected: wallets.length > 0,
-      addresses: wallets.map(w => w.address),
+      addresses: wallets.map((w) => w.address),
     };
   }
 
   async connectWallet(address: string, signature: StarknetSignature) {
-
     // find address in the latest nonce
     const record = await this.prisma.nonce.findFirst({
       where: {
         address,
-        expiresAt: { gt: new Date() }
+        expiresAt: { gt: new Date() },
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
     });
 
     if (!record) {
@@ -85,7 +84,8 @@ export class WalletService {
       wallet = await this.prisma.wallet.create({
         data: {
           address,
-          user: { // create new user with wallet address as username
+          user: {
+            // create new user with wallet address as username
             create: { username: address },
           },
         },
@@ -105,7 +105,6 @@ export class WalletService {
   }
 
   async requestNonce(address: string) {
-
     // Generate 32-char hex string for nonce
     const nonce = randomBytes(16).toString('hex');
     // Valid for 5 mins

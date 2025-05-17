@@ -12,31 +12,30 @@ import { PostModule } from './post/post.module';
 
 @Module({
   imports: [
-      ConfigModule.forRoot({
-        isGlobal: true,
-        cache: true,
-        load: [AppConfig],
-      }),
-      PrismaModule.forRoot({
-        isGlobal: true,
-        prismaServiceOptions: {
-          middlewares: [
-            loggingMiddleware({
-              logger: new Logger('PrismaMiddleware'),
-              logLevel: 'log',
-            }),
-          ],
-        },
-      }),
-      CacheModule.register({
-        isGlobal: true,
-        ttl: 60 * 5, // 5 minutes cache TTL
-      }),
-      AuthModule,
-      UsersModule,
-      WalletModule,
-      PostModule,
-  
+    ConfigModule.forRoot({
+      isGlobal: true,
+      cache: true,
+      load: [AppConfig],
+    }),
+    PrismaModule.forRoot({
+      isGlobal: true,
+      prismaServiceOptions: {
+        middlewares: [
+          loggingMiddleware({
+            logger: new Logger('PrismaMiddleware'),
+            logLevel: 'log',
+          }),
+        ],
+      },
+    }),
+    CacheModule.register({
+      isGlobal: true,
+      ttl: 60 * 5, // 5 minutes cache TTL
+    }),
+    AuthModule,
+    UsersModule,
+    WalletModule,
+    PostModule,
   ],
   controllers: [AppController],
   providers: [AppService],

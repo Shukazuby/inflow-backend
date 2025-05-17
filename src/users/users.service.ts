@@ -24,7 +24,7 @@ const selectSafeUserFields = {
 export class UsersService {
   constructor(
     private prisma: PrismaService,
-    @Inject(CACHE_MANAGER) private cacheManager: Cache
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
   async findOneById(
@@ -73,10 +73,10 @@ export class UsersService {
         data: updateUserDto,
         select: selectSafeUserFields,
       });
-      
+
       // Invalidate the cache when user data changes
       await this.cacheManager.del(`user-stats-${id}`);
-      
+
       return updatedUser;
     } catch (error) {
       // Handle potential Prisma errors, e.g., record not found
@@ -91,11 +91,11 @@ export class UsersService {
     // Try to get stats from cache first
     const cacheKey = `user-stats-${id}`;
     const cachedStats = await this.cacheManager.get<UserStatsDto>(cacheKey);
-    
+
     if (cachedStats) {
       return cachedStats;
     }
-    
+
     // If not in cache, fetch from database
     // Check if user exists
     const userExists = await this.prisma.user.findUnique({
@@ -108,30 +108,32 @@ export class UsersService {
     }
 
     // Using Prisma to efficiently get counts
-    const [followersCount, followingCount, postCount, tips] = await Promise.all([
-      // Count followers
-      this.prisma.follow.count({
-        where: { followingId: id },
-      }),
-      
-      // Count following
-      this.prisma.follow.count({
-        where: { followerId: id },
-      }),
-      
-      // Count posts
-      this.prisma.post.count({
-        where: { userId: id },
-      }),
-      
-      // Sum tips received
-      this.prisma.tip.aggregate({
-        where: { receiverId: id },
-        _sum: {
-          amount: true,
-        },
-      }),
-    ]);
+    const [followersCount, followingCount, postCount, tips] = await Promise.all(
+      [
+        // Count followers
+        this.prisma.follow.count({
+          where: { followingId: id },
+        }),
+
+        // Count following
+        this.prisma.follow.count({
+          where: { followerId: id },
+        }),
+
+        // Count posts
+        this.prisma.post.count({
+          where: { userId: id },
+        }),
+
+        // Sum tips received
+        this.prisma.tip.aggregate({
+          where: { receiverId: id },
+          _sum: {
+            amount: true,
+          },
+        }),
+      ],
+    );
 
     // Prepare the response
     const stats = {
@@ -140,10 +142,10 @@ export class UsersService {
       postCount,
       totalTipsReceived: tips._sum.amount || 0, // Use 0 if no tips received
     };
-    
+
     // Store in cache for future requests
     await this.cacheManager.set(cacheKey, stats);
-    
+
     return stats;
   }
 }

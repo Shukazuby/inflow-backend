@@ -14,7 +14,6 @@ export class SignupDto {
   @IsString()
   @MinLength(6)
   password?: string;
-
 }
 
 export class LoginDto {
@@ -27,4 +26,3 @@ export class LoginDto {
   @MinLength(6)
   password?: string;
 }
-

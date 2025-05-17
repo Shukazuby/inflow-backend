@@ -15,10 +15,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     });
   }
 
-  async validate(
-    req: Request,
-    payload: { sub: string; email: string }
-  ) {
+  async validate(req: Request, payload: { sub: string; email: string }) {
     // extract raw token to check revocation
     const rawToken = ExtractJwt.fromAuthHeaderAsBearerToken()(req);
     if (!rawToken) {
@@ -52,4 +49,4 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
 // JwtAuthGuard could be moved to its separate file and its references updated
 import { AuthGuard } from '@nestjs/passport';
 @Injectable()
-export class JwtAuthGuard extends AuthGuard('jwt') { }
+export class JwtAuthGuard extends AuthGuard('jwt') {}

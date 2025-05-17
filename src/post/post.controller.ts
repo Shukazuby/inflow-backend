@@ -8,12 +8,19 @@ import {
   Delete,
   UseGuards,
   Request,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import { PostService } from './post.service';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { Request as ExpressRequest } from 'express';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/guards/jwt.strategy';
 
 @ApiTags('Post')
@@ -28,6 +35,7 @@ export class PostController {
     const result = await this.postService.create(req['user'].id, dto);
     return result;
   }
+
   @Get()
   findAll() {
     return this.postService.findAll();
@@ -35,16 +43,36 @@ export class PostController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.postService.findOne(+id);
+    return this.postService.findOne(id);
   }
 
+  @ApiBearerAuth('jwt-auth')
   @Patch(':id')
   update(@Param('id') id: string, @Body() updatePostDto: UpdatePostDto) {
-    return this.postService.update(+id, updatePostDto);
+    return this.postService.update(id, updatePostDto);
   }
 
+  @ApiBearerAuth('jwt-auth')
+  @UseGuards(JwtAuthGuard)
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.postService.remove(+id);
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Delete a post' })
+  @ApiResponse({
+    status: 200,
+    description: 'Post deleted successfully',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - User not authorized to delete this post',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Post not found',
+  })
+  async remove(
+    @Request() req: ExpressRequest,
+    @Param('id') id: string,
+  ) {
+    return this.postService.remove(id);
   }
 }
