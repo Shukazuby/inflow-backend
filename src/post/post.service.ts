@@ -1,4 +1,9 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { PrismaService } from 'nestjs-prisma';
@@ -6,21 +11,22 @@ import { PrismaService } from 'nestjs-prisma';
 @Injectable()
 export class PostService {
   private readonly logger = new Logger(PostService.name);
-  
+
   constructor(private prisma: PrismaService) {}
 
   async create(userId: string, createPostDto: CreatePostDto) {
     try {
-      const { content, media, tags, category, visibility, mint } = createPostDto;
-      
+      const { content, media, tags, category, visibility, mint } =
+        createPostDto;
+
       const allowedVisibilities = ['public', 'private', 'followers_only'];
       if (!allowedVisibilities.includes(visibility)) {
         throw new Error(`Invalid visibility value: ${visibility}`);
       }
 
-      let minted = false
-      if(mint){
-        minted = mint
+      let minted = false;
+      if (mint) {
+        minted = mint;
       }
 
       const post = await this.prisma.post.create({
@@ -31,7 +37,7 @@ export class PostService {
           tags,
           category,
           visibility,
-          isMinted: minted
+          isMinted: minted,
         },
       });
 
@@ -53,8 +59,42 @@ export class PostService {
     return `This action returns a #${id} post`;
   }
 
-  update(id: string, updatePostDto: UpdatePostDto) {
-    return `This action updates a #${id} post`;
+  async update(id: string, updatePostDto: UpdatePostDto, userId: string) {
+    const { content, media, tags, category, visibility, mint } = updatePostDto;
+
+    const post = await this.prisma.post.findUnique({
+      where: { id },
+    });
+
+    if (!post) {
+      throw new NotFoundException(`Post not found`);
+    }
+
+    if (post.userId !== userId) {
+      throw new ForbiddenException('You can only edit your own posts');
+    }
+
+    // If validation passes, update the post
+    return this.prisma.post.update({
+      where: { id },
+      data: {
+        content,
+        media,
+        tags,
+        category,
+        visibility,
+        isMinted: mint,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            username: true,
+            avatarUrl: true,
+          },
+        },
+      },
+    });
   }
 
   async remove(id: string) {
@@ -65,7 +105,7 @@ export class PostService {
       });
 
       if (!post) {
-        throw new NotFoundException(`Post with ID ${id} not found`);
+        throw new NotFoundException(`Post not found`);
       }
 
       if (post.isMinted) {
@@ -76,12 +116,6 @@ export class PostService {
           this.logger.log(
             `NFT post ${id} burn operation would be triggered here`,
           );
-
-          // Placeholder for burn operation
-          // When implementing NFT functionality, replace this with actual burn code:
-          // Example: await blockchainService.burnNFT(post.tokenId);
-
-          // After successful burn, delete the post
           await this.prisma.post.delete({
             where: { id },
           });
@@ -90,12 +124,10 @@ export class PostService {
             message: `NFT post burned and deleted`,
           };
         } catch (burnError) {
-          // If burn operation fails, log the error and throw it to trigger rollback
-          this.logger.error(`Failed to burn NFT post ${id}:`, burnError.stack);
+          this.logger.error(`Failed to burn NFT post:`, burnError.stack);
           throw new Error(`NFT burn operation failed: ${burnError.message}`);
         }
       } else {
-        // For non-NFT posts, simply delete the post
         await this.prisma.post.delete({
           where: { id },
         });
@@ -105,8 +137,7 @@ export class PostService {
         };
       }
     } catch (error) {
-      this.logger.error(`Post deletion failed for ID ${id}:`, error.stack);
-      // Re-throw the error to be handled by the controller
+      this.logger.error(`Post deletion failed:`, error.stack);
       if (error instanceof NotFoundException) {
         throw error;
       }

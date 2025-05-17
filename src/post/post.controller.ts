@@ -46,10 +46,29 @@ export class PostController {
     return this.postService.findOne(id);
   }
 
-  @ApiBearerAuth('jwt-auth')
+  @UseGuards(JwtAuthGuard)
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updatePostDto: UpdatePostDto) {
-    return this.postService.update(id, updatePostDto);
+  @ApiBearerAuth('jwt-auth')
+  @ApiOperation({ summary: 'Update a post' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Post has been successfully updated.',
+  })
+  @ApiResponse({
+    status: HttpStatus.FORBIDDEN,
+    description: 'You can only edit your own posts.',
+  })
+  @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Post not found.' })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'Unauthorized.',
+  })
+  update(
+    @Param('id') id: string, // Changed from ParseIntPipe to string
+    @Body() updatePostDto: UpdatePostDto,
+    @Request() req,
+  ) {
+    return this.postService.update(id, updatePostDto, req.user.id);
   }
 
   @ApiBearerAuth('jwt-auth')
