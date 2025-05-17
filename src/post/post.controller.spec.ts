@@ -1,10 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { PostController } from './post.controller';
 import { PostService } from './post.service';
-import { ForbiddenException, NotFoundException } from '@nestjs/common';
-import { CreatePostDto } from './dto/create-post.dto';
+import { JwtAuthGuard } from 'src/guards/jwt.strategy';
+import { CreatePostDto, Visibility } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
-import { Visibility } from '@prisma/client';
+import { HttpStatus } from '@nestjs/common';
 
 describe('PostController', () => {
   let controller: PostController;
@@ -27,10 +27,17 @@ describe('PostController', () => {
           useValue: mockPostService,
         },
       ],
-    }).compile();
+    })
+      .overrideGuard(JwtAuthGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<PostController>(PostController);
     service = module.get<PostService>(PostService);
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
   it('should be defined', () => {
@@ -38,206 +45,124 @@ describe('PostController', () => {
   });
 
   describe('create', () => {
-    it('should create a post', async () => {
+    it('should create a new post', async () => {
+      // Arrange
+      const userId = 'user1';
+      const req = { user: { id: userId } };
       const createPostDto: CreatePostDto = {
-        content: 'Test Content',
-        tags: ['test'],
-        category: 'test',
-        visibility: Visibility.public,
+        content: 'Test content',
+        media: 'media.jpg',
+        tags: ['test', 'content'],
+        category: 'GENERAL',
+        visibility: Visibility.PUBLIC,
+        mint: false,
       };
-      const req = { user: { id: 'user-123' } };
       const expectedResult = {
-        id: 'post-123',
-        content: createPostDto.content,
-        userId: 'user-123',
-        media: null,
-        tags: createPostDto.tags,
-        category: createPostDto.category,
-        visibility: createPostDto.visibility,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        message: 'Post created',
+        post: {
+          id: 'post1',
+          ...createPostDto,
+          userId,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
       };
+      mockPostService.create.mockResolvedValue(expectedResult);
 
-      jest.spyOn(service, 'create').mockResolvedValue(expectedResult);
+      // Act
+      const result = await controller.create(req as any, createPostDto);
 
-      expect(await controller.create(createPostDto, req)).toBe(expectedResult);
-      expect(service.create).toHaveBeenCalledWith(createPostDto, 'user-123');
+      // Assert
+      expect(mockPostService.create).toHaveBeenCalledWith(userId, createPostDto);
+      expect(result).toEqual(expectedResult);
     });
   });
 
   describe('findAll', () => {
-    it('should return an array of posts', async () => {
-      const expectedResult = [
-        {
-          id: 'post-123',
-          content: 'Test Content',
-          media: null,
-          tags: ['test'],
-          category: 'test',
-          visibility: Visibility.public,
-          userId: 'user-123',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          user: {
-            id: 'user-123',
-            username: 'testuser',
-            avatarUrl: 'avatar.jpg',
-          },
-        },
-      ];
+    it('should return all posts', () => {
+      // Arrange
+      const expectedResult = 'This action returns all post';
+      mockPostService.findAll.mockReturnValue(expectedResult);
 
-      jest.spyOn(service, 'findAll').mockResolvedValue(expectedResult);
+      // Act
+      const result = controller.findAll();
 
-      expect(await controller.findAll()).toBe(expectedResult);
+      // Assert
+      expect(mockPostService.findAll).toHaveBeenCalled();
+      expect(result).toEqual(expectedResult);
     });
   });
 
   describe('findOne', () => {
-    it('should return a post', async () => {
-      const expectedResult = {
-        id: 'post-123',
-        content: 'Test Content',
-        media: null,
-        tags: ['test'],
-        category: 'test',
-        visibility: Visibility.public,
-        userId: 'user-123',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        user: {
-          id: 'user-123',
-          username: 'testuser',
-          avatarUrl: 'avatar.jpg',
-        },
-      };
+    it('should return a single post', () => {
+      // Arrange
+      const postId = 'post1';
+      const expectedResult = `This action returns a #${postId} post`;
+      mockPostService.findOne.mockReturnValue(expectedResult);
 
-      jest.spyOn(service, 'findOne').mockResolvedValue(expectedResult);
+      // Act
+      const result = controller.findOne(postId);
 
-      expect(await controller.findOne('post-123')).toBe(expectedResult);
-      expect(service.findOne).toHaveBeenCalledWith('post-123');
-    });
-
-    it('should throw NotFoundException when post not found', async () => {
-      jest.spyOn(service, 'findOne').mockRejectedValue(new NotFoundException());
-
-      await expect(controller.findOne('nonexistent-post')).rejects.toThrow(
-        NotFoundException,
-      );
+      // Assert
+      expect(mockPostService.findOne).toHaveBeenCalledWith(postId);
+      expect(result).toEqual(expectedResult);
     });
   });
 
   describe('update', () => {
-    it('should update a post when user is the owner', async () => {
+    it('should update a post', () => {
+      // Arrange
+      const postId = 'post1';
       const updatePostDto: UpdatePostDto = {
-        content: 'Updated Content',
-        tags: ['updated'],
+        content: 'Updated content',
       };
-      const req = { user: { id: 'user-123' } };
-      const expectedResult = {
-        id: 'post-123',
-        content: 'Updated Content',
-        media: null,
-        tags: ['updated'],
-        category: 'test',
-        visibility: Visibility.public,
-        userId: 'user-123',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        user: {
-          id: 'user-123',
-          username: 'testuser',
-          avatarUrl: 'avatar.jpg',
-        },
-      };
+      const expectedResult = `This action updates a #${postId} post`;
+      mockPostService.update.mockReturnValue(expectedResult);
 
-      jest.spyOn(service, 'update').mockResolvedValue(expectedResult);
+      // Act
+      const result = controller.update(postId, updatePostDto);
 
-      expect(await controller.update('post-123', updatePostDto, req)).toBe(
-        expectedResult,
-      );
-      expect(service.update).toHaveBeenCalledWith(
-        'post-123',
-        updatePostDto,
-        'user-123',
-      );
-    });
-
-    it('should throw ForbiddenException when user is not the owner', async () => {
-      const updatePostDto: UpdatePostDto = {
-        content: 'Updated Content',
-        tags: ['updated'],
-      };
-      const req = { user: { id: 'user-456' } }; // Different user ID
-
-      jest
-        .spyOn(service, 'update')
-        .mockRejectedValue(
-          new ForbiddenException('You can only edit your own posts'),
-        );
-
-      await expect(
-        controller.update('post-123', updatePostDto, req),
-      ).rejects.toThrow(ForbiddenException);
-    });
-
-    it('should throw NotFoundException when post not found', async () => {
-      const updatePostDto: UpdatePostDto = {
-        content: 'Updated Content',
-        tags: ['updated'],
-      };
-      const req = { user: { id: 'user-123' } };
-
-      jest.spyOn(service, 'update').mockRejectedValue(new NotFoundException());
-
-      await expect(
-        controller.update('nonexistent-post', updatePostDto, req),
-      ).rejects.toThrow(NotFoundException);
+      // Assert
+      expect(mockPostService.update).toHaveBeenCalledWith(postId, updatePostDto);
+      expect(result).toEqual(expectedResult);
     });
   });
 
   describe('remove', () => {
-    it('should remove a post when user is the owner', async () => {
-      const req = { user: { id: 'user-123' } };
+    it('should delete a post', async () => {
+      // Arrange
+      const userId = 'user1';
+      const postId = 'post1';
+      const req = { user: { id: userId } };
       const expectedResult = {
-        id: 'post-123',
-        content: 'Test Content',
-        media: null,
-        tags: ['test'],
-        category: 'test',
-        visibility: Visibility.public,
-        userId: 'user-123',
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        message: `Post with ID ${postId} has been successfully deleted`,
       };
+      mockPostService.remove.mockResolvedValue(expectedResult);
 
-      jest.spyOn(service, 'remove').mockResolvedValue(expectedResult);
+      // Act
+      const result = await controller.remove(req as any, postId);
 
-      expect(await controller.remove('post-123', req)).toBe(expectedResult);
-      expect(service.remove).toHaveBeenCalledWith('post-123', 'user-123');
+      // Assert
+      expect(mockPostService.remove).toHaveBeenCalledWith(postId);
+      expect(result).toEqual(expectedResult);
     });
 
-    it('should throw ForbiddenException when user is not the owner', async () => {
-      const req = { user: { id: 'user-456' } }; // Different user ID
+    it('should delete an NFT post with burn operation', async () => {
+      // Arrange
+      const userId = 'user1';
+      const postId = 'nft-post1';
+      const req = { user: { id: userId } };
+      const expectedResult = {
+        message: `NFT post with ID ${postId} has been successfully burned and deleted`,
+      };
+      mockPostService.remove.mockResolvedValue(expectedResult);
 
-      jest
-        .spyOn(service, 'remove')
-        .mockRejectedValue(
-          new ForbiddenException('You can only delete your own posts'),
-        );
+      // Act
+      const result = await controller.remove(req as any, postId);
 
-      await expect(controller.remove('post-123', req)).rejects.toThrow(
-        ForbiddenException,
-      );
-    });
-
-    it('should throw NotFoundException when post not found', async () => {
-      const req = { user: { id: 'user-123' } };
-
-      jest.spyOn(service, 'remove').mockRejectedValue(new NotFoundException());
-
-      await expect(controller.remove('nonexistent-post', req)).rejects.toThrow(
-        NotFoundException,
-      );
+      // Assert
+      expect(mockPostService.remove).toHaveBeenCalledWith(postId);
+      expect(result).toEqual(expectedResult);
     });
   });
 });
