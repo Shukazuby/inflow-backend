@@ -18,6 +18,8 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   async validate(req: Request, payload: { sub: string; email: string }) {
     // extract raw token to check revocation
     const rawToken = ExtractJwt.fromAuthHeaderAsBearerToken()(req);
+    console.log("rowToken",rawToken)
+    console.log("request",req)
     if (!rawToken) {
       throw new UnauthorizedException('No token found');
     }

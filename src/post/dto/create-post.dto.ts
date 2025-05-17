@@ -45,3 +45,4 @@ export class CreatePostDto {
   @IsBoolean()
   mint?: boolean;
 }
+
