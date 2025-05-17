@@ -1,42 +1,55 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsArray, IsBoolean, IsEnum, IsOptional, IsString } from 'class-validator';
-
-export enum Visibility {
-  PUBLIC = 'public',
-  PRIVATE = 'private',
-  FOLLOWERS_ONLY = 'followers_only',
-}
+import {
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  IsArray,
+  IsEnum,
+} from 'class-validator';
+import { Visibility } from '@prisma/client';
 
 export class CreatePostDto {
-@ApiProperty()
+  @ApiProperty({
+    description: 'Content of the post',
+    example: 'This is my first post!',
+  })
   @IsString()
+  @IsNotEmpty()
   content: string;
 
-  @ApiProperty()
-  @IsOptional()
+  @ApiProperty({
+    description: 'Optional media URL (image/video) for the post',
+    example: 'https://example.com/image.png',
+    required: false,
+  })
   @IsString()
+  @IsOptional()
   media?: string;
 
-  @ApiProperty()
+  @ApiProperty({
+    description: 'Tags associated with the post',
+    example: ['nestjs', 'prisma', 'api'],
+  })
   @IsArray()
   @IsString({ each: true })
-  tags: string[];
+  @IsOptional()
+  tags?: string[];
 
-  @ApiProperty()
+  @ApiProperty({
+    description: 'Category under which the post falls',
+    example: 'technology',
+  })
   @IsString()
+  @IsNotEmpty()
   category: string;
 
   @ApiProperty({
+    description: 'Visibility level of the post',
+    enum: Visibility,
+    default: Visibility.public,
     required: false,
-    type: String,
-    enum: Visibility
-
   })
   @IsEnum(Visibility)
-  visibility: Visibility;
-
-  @ApiProperty()
   @IsOptional()
-  @IsBoolean()
-  mint?: boolean;
+  visibility?: Visibility;
 }

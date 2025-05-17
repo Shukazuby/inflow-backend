@@ -27,7 +27,9 @@ describe('WalletController (Auth Flow)', () => {
   describe('requestNonce', () => {
     it('should call service.requestNonce with correct address and return nonce', async () => {
       const dto = { address: '0xABC' };
-      (service.requestNonce as jest.Mock).mockResolvedValue({ nonce: 'deadbeef' });
+      (service.requestNonce as jest.Mock).mockResolvedValue({
+        nonce: 'deadbeef',
+      });
 
       const result = await controller.requestNonce(dto);
 
@@ -37,7 +39,9 @@ describe('WalletController (Auth Flow)', () => {
 
     it('should propagate errors from service', async () => {
       const dto = { address: '0xBAD' };
-      (service.requestNonce as jest.Mock).mockRejectedValue(new Error('failed'));
+      (service.requestNonce as jest.Mock).mockRejectedValue(
+        new Error('failed'),
+      );
 
       await expect(controller.requestNonce(dto)).rejects.toThrow('failed');
     });
@@ -46,19 +50,28 @@ describe('WalletController (Auth Flow)', () => {
   describe('connectWallet', () => {
     it('should call service.connectWallet with correct args and return token', async () => {
       const dto = { address: '0xDEF', signature: '0xsomesig' };
-      (service.connectWallet as jest.Mock).mockResolvedValue({ token: 'jwt-token' });
+      (service.connectWallet as jest.Mock).mockResolvedValue({
+        token: 'jwt-token',
+      });
 
       const result = await controller.connectWallet(dto);
 
-      expect(service.connectWallet).toHaveBeenCalledWith(dto.address, dto.signature);
+      expect(service.connectWallet).toHaveBeenCalledWith(
+        dto.address,
+        dto.signature,
+      );
       expect(result).toEqual({ token: 'jwt-token' });
     });
 
     it('should propagate UnauthorizedException from service', async () => {
       const dto = { address: '0xDEF', signature: '0xsomesig' };
-      (service.connectWallet as jest.Mock).mockRejectedValue(new UnauthorizedException('Invalid'));
+      (service.connectWallet as jest.Mock).mockRejectedValue(
+        new UnauthorizedException('Invalid'),
+      );
 
-      await expect(controller.connectWallet(dto)).rejects.toThrow(UnauthorizedException);
+      await expect(controller.connectWallet(dto)).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
   });
 });

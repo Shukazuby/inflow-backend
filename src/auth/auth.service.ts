@@ -19,16 +19,13 @@ export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwt: JwtService,
-  ) { }
+  ) {}
 
   async signup(dto: SignupDto) {
     const normalizedUsername = dto.username.toLowerCase(); // Normalize username
     const userExists = await this.prisma.user.findFirst({
       where: {
-        OR: [
-          { email: dto.email },
-          { username: normalizedUsername },
-        ]
+        OR: [{ email: dto.email }, { username: normalizedUsername }],
       },
     });
 
@@ -79,19 +76,19 @@ export class AuthService {
 
     return {
       user,
-      ...tokens
-    }
+      ...tokens,
+    };
   }
 
   async logout(userId: string) {
-    const user = await this.prisma.user.findUnique({ where: { id: userId } })
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
     await this.prisma.revokedToken.create({
       data: {
         token: user.refreshToken,
-        userId
+        userId,
       },
     });
-    return {  user, message: 'Logged out successfully' };
+    return { user, message: 'Logged out successfully' };
   }
 
   async getMe(userId: string) {
@@ -102,7 +99,7 @@ export class AuthService {
 
     if (!user) throw new UnauthorizedException('User not found');
 
-    return user
+    return user;
   }
 
   async getTokens(userId: string, email: string) {

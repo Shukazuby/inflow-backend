@@ -40,20 +40,20 @@ describe('WalletController', () => {
 
   describe('walletStatus', () => {
     const mockReq: any = {
-      user: { userId: 'user1' }
+      user: { userId: 'user1' },
     };
 
     it('should return status data', async () => {
       (service.getWalletStatus as jest.Mock).mockResolvedValue({
         connected: true,
-        addresses: ['0xHIJ']
+        addresses: ['0xHIJ'],
       });
 
       const result = await controller.walletStatus(mockReq);
 
       expect(result).toEqual({
         status: 'success',
-        data: { connected: true, addresses: ['0xHIJ'] }
+        data: { connected: true, addresses: ['0xHIJ'] },
       });
     });
   });

@@ -49,7 +49,9 @@ describe('WalletService', () => {
 
   describe('disconnectWallet', () => {
     it('should delete specific wallet when address provided', async () => {
-      prismaMock.user.findUnique.mockResolvedValue({ refreshToken: 'mockToken' });
+      prismaMock.user.findUnique.mockResolvedValue({
+        refreshToken: 'mockToken',
+      });
 
       await service.disconnectWallet('user123', '0xABC');
 
@@ -67,9 +69,10 @@ describe('WalletService', () => {
       });
     });
 
-
     it('should update wallet if no address is provided', async () => {
-      prismaMock.user.findUnique.mockResolvedValue({ refreshToken: 'mockToken' });
+      prismaMock.user.findUnique.mockResolvedValue({
+        refreshToken: 'mockToken',
+      });
 
       await service.disconnectWallet('user456');
 
@@ -81,7 +84,6 @@ describe('WalletService', () => {
       expect(prismaMock.revokedToken.create).toHaveBeenCalled();
       expect(prismaMock.user.update).toHaveBeenCalled();
     });
-
 
     it('should revoke refresh token if exists', async () => {
       prismaMock.user.findUnique.mockResolvedValue({ refreshToken: 'rt' });
@@ -127,7 +129,6 @@ describe('WalletService', () => {
         select: { address: true },
       });
     });
-
 
     it('should return connected false when no wallets found', async () => {
       prismaMock.wallet.findMany.mockResolvedValue([]);
