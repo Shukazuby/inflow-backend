@@ -9,6 +9,7 @@ import { UsersModule } from './users/users.module';
 import { CacheModule } from '@nestjs/cache-manager';
 import { WalletModule } from './wallet/wallet.module';
 import { PostModule } from './post/post.module';
+import { PostsModule } from './posts/posts.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { PostModule } from './post/post.module';
     UsersModule,
     WalletModule,
     PostModule,
+    PostsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
