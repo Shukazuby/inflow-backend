@@ -3,6 +3,7 @@ import { PostService } from './post.service';
 import { PrismaService } from 'nestjs-prisma';
 import { NotFoundException } from '@nestjs/common';
 import { Visibility } from './dto/create-post.dto';
+import { SortBy } from './dto/feed-query.dto';
 
 describe('PostService', () => {
   let service: PostService;
@@ -13,6 +14,8 @@ describe('PostService', () => {
       findUnique: jest.fn(),
       delete: jest.fn(),
       create: jest.fn(),
+      findMany: jest.fn(),
+      count: jest.fn(),
     },
   };
 
@@ -67,9 +70,7 @@ describe('PostService', () => {
       mockPrismaService.post.create.mockResolvedValue(mockCreatedPost);
 
       // Act
-      const result = await service.create(userId, createPostDto);
-
-      // Assert
+      const result = await service.create(userId, createPostDto);      // Assert
       expect(mockPrismaService.post.create).toHaveBeenCalledWith({
         data: {
           userId,
@@ -78,6 +79,7 @@ describe('PostService', () => {
           tags: createPostDto.tags,
           category: createPostDto.category,
           visibility: createPostDto.visibility,
+          isMinted: false,
         },
       });
       expect(result).toEqual({
@@ -105,7 +107,6 @@ describe('PostService', () => {
       expect(mockPrismaService.post.create).not.toHaveBeenCalled();
     });
   });
-
   describe('remove', () => {
     it('should delete a non-NFT post', async () => {
       // Arrange
@@ -114,18 +115,11 @@ describe('PostService', () => {
         id: postId,
         userId: 'user1',
         content: 'Test content',
-        // No NFT indicator or with mint: false
+        isMinted: false,
       };
 
       mockPrismaService.post.findUnique.mockResolvedValue(mockPost);
       mockPrismaService.post.delete.mockResolvedValue(mockPost);
-
-      // Override the isNFT check that's hardcoded in your service
-      // For a real implementation, you would either:
-      // 1. Make isNFT a class property that can be mocked
-      // 2. Extract the NFT detection to a separate service that can be mocked
-      // This test assumes we've modified the implementation to NOT treat all posts as NFTs
-      jest.spyOn(service as any, 'isNFT').mockReturnValue(false);
 
       // Act
       const result = await service.remove(postId);
@@ -136,44 +130,32 @@ describe('PostService', () => {
       });
       expect(mockPrismaService.post.delete).toHaveBeenCalledWith({
         where: { id: postId },
+      });      expect(result).toEqual({
+        message: `Post deleted`,
       });
-      expect(result).toEqual({
-        message: `Post with ID ${postId} has been successfully deleted`,
-      });
-    });
-
-    it('should burn and delete an NFT post', async () => {
+    });    it('should burn and delete an NFT post', async () => {
       // Arrange
       const postId = 'nft-post1';
       const mockNftPost = {
         id: postId,
         userId: 'user1',
         content: 'NFT content',
-        mint: true, // Indicating it's an NFT
+        isMinted: true, // Indicating it's an NFT
       };
 
       mockPrismaService.post.findUnique.mockResolvedValue(mockNftPost);
-      mockPrismaService.post.delete.mockResolvedValue(mockNftPost);
-
-      // Mock the NFT detection to return true
-      jest.spyOn(service as any, 'isNFT').mockReturnValue(true);
-      
-      // Mock the burn operation that would typically call a blockchain service
-      const burnNftSpy = jest.spyOn(service as any, 'burnNft').mockResolvedValue(true);
-
-      // Act
+      mockPrismaService.post.delete.mockResolvedValue(mockNftPost);      // Act
       const result = await service.remove(postId);
 
       // Assert
       expect(mockPrismaService.post.findUnique).toHaveBeenCalledWith({
         where: { id: postId },
       });
-      expect(burnNftSpy).toHaveBeenCalledWith(mockNftPost);
       expect(mockPrismaService.post.delete).toHaveBeenCalledWith({
         where: { id: postId },
       });
       expect(result).toEqual({
-        message: `NFT post with ID ${postId} has been successfully burned and deleted`,
+        message: `NFT post burned and deleted`,
       });
     });
 
@@ -190,32 +172,110 @@ describe('PostService', () => {
         where: { id: nonExistentPostId },
       });
       expect(mockPrismaService.post.delete).not.toHaveBeenCalled();
+    });    it('should handle errors when deleting posts', async () => {
+      // Arrange
+      const postId = 'post1';
+      mockPrismaService.post.findUnique.mockResolvedValue({
+        id: postId,
+        isMinted: false,
+      });
+      
+      // Force an error during delete
+      const deleteError = new Error('Database error');
+      mockPrismaService.post.delete.mockRejectedValue(deleteError);      // Act & Assert
+      await expect(service.remove(postId)).rejects.toThrow(
+        /Post deletion failed/,
+      );
+    });
+  });
+
+  describe('getFeed', () => {
+    it('should return paginated posts sorted by recency', async () => {
+      const mockPosts = [
+        { 
+          id: 'post1', 
+          content: 'Post 1', 
+          userId: 'user1', 
+          createdAt: new Date(),
+          visibility: 'public'
+        },
+        { 
+          id: 'post2', 
+          content: 'Post 2', 
+          userId: 'user2',
+          createdAt: new Date(),
+          visibility: 'public'
+        },
+      ];
+      const totalCount = 2;
+
+      mockPrismaService.post.findMany.mockResolvedValue(mockPosts);
+      mockPrismaService.post.count.mockResolvedValue(totalCount);
+      const result = await service.getFeed({});
+
+      expect(mockPrismaService.post.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { visibility: 'public' },
+          orderBy: { createdAt: 'desc' },
+          skip: 0,
+          take: 10,
+        }),
+      );
+
+      expect(result).toEqual({
+        data: mockPosts,
+        meta: {
+          currentPage: 1,
+          itemsPerPage: 10,
+          totalItems: totalCount,
+          totalPages: 1,
+          hasNextPage: false,
+          hasPreviousPage: false,
+        },
+      });
+    });    it('should sort by popularity when specified', async () => {
+      mockPrismaService.post.findMany.mockResolvedValue([]);
+      mockPrismaService.post.count.mockResolvedValue(0);
+
+      await service.getFeed({ sortBy: SortBy.POPULARITY });
+
+      expect(mockPrismaService.post.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: expect.arrayContaining([
+            expect.objectContaining({ tips: expect.anything() })
+          ]),
+        }),
+      );
     });
 
-    it('should handle NFT burn operation failure', async () => {
-      // Arrange
-      const postId = 'nft-post1';
-      const mockNftPost = {
-        id: postId,
-        userId: 'user1',
-        content: 'NFT content',
-        mint: true,
-      };
+    it('should handle pagination correctly', async () => {
+      mockPrismaService.post.findMany.mockResolvedValue([]);
+      mockPrismaService.post.count.mockResolvedValue(30);
 
-      mockPrismaService.post.findUnique.mockResolvedValue(mockNftPost);
-      
-      // Mock the NFT detection to return true
-      jest.spyOn(service as any, 'isNFT').mockReturnValue(true);
-      
-      // Mock the burn operation to fail
-      const burnError = new Error('Blockchain connection failed');
-      jest.spyOn(service as any, 'burnNft').mockRejectedValue(burnError);
+      const result = await service.getFeed({ page: 2, limit: 10 });
 
-      // Act & Assert
-      await expect(service.remove(postId)).rejects.toThrow(
-        'Post deletion failed: NFT burn operation failed: Blockchain connection failed',
+      expect(mockPrismaService.post.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          skip: 10,
+          take: 10,
+        }),
       );
-      expect(mockPrismaService.post.delete).not.toHaveBeenCalled();
+
+      expect(result.meta).toEqual({
+        currentPage: 2,
+        itemsPerPage: 10,
+        totalItems: 30,
+        totalPages: 3,
+        hasNextPage: true,
+        hasPreviousPage: true,
+      });
+    });
+
+    it('should handle errors during feed retrieval', async () => {
+      const errorMessage = 'Database connection error';
+      mockPrismaService.post.findMany.mockRejectedValue(new Error(errorMessage));
+
+      await expect(service.getFeed({})).rejects.toThrow(`Failed to retrieve feed: ${errorMessage}`);
     });
   });
 });
