@@ -146,23 +146,20 @@ export class PostService {
       throw new Error(`Post deletion failed: ${error.message}`);
     }
   }
+  
   async getFeed(query: FeedQueryDto): Promise<PaginatedFeedResponse> {
     try {
       const { page = 1, limit = 10, sortBy = SortBy.RECENCY } = query;
       const skip = (page - 1) * limit;
 
-      // Define sorting based on the sortBy parameter
       let orderBy: any = {};      if (sortBy === SortBy.RECENCY) {
         orderBy = { createdAt: 'desc' };      } else if (sortBy === SortBy.POPULARITY) {
-        // For popularity, we sort by the number of tips
-        // With a secondary sort by recency
         orderBy = [
           { tips: { _count: 'desc' } },
           { createdAt: 'desc' },
         ];
       }
 
-      // Get posts with pagination
       const [posts, totalCount] = await Promise.all([
         this.prisma.post.findMany({
           where: {
@@ -192,7 +189,6 @@ export class PostService {
         }),
       ]);
 
-      // Calculate pagination metadata
       const totalPages = Math.ceil(totalCount / limit);
       const hasNextPage = page < totalPages;
       const hasPreviousPage = page > 1;
