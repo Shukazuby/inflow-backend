@@ -10,10 +10,12 @@ import {
   Request,
   HttpCode,
   HttpStatus,
+  Query,
 } from '@nestjs/common';
 import { PostService } from './post.service';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
+import { FeedQueryDto } from './dto/feed-query.dto';
 import { Request as ExpressRequest } from 'express';
 import {
   ApiBearerAuth,
@@ -22,6 +24,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/guards/jwt.strategy';
+import { FeedResponseSchema } from './schemas/feed-response.schema';
 
 @ApiTags('Post')
 @Controller('post')
@@ -39,6 +42,21 @@ export class PostController {
   @Get()
   findAll() {
     return this.postService.findAll();
+  }
+  
+  @Get('feed')
+  @ApiOperation({ summary: 'Get a paginated feed of public posts' })  
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Returns paginated public posts',
+    schema: FeedResponseSchema,
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'Invalid query parameters',
+  })
+  async getFeed(@Query() query: FeedQueryDto) {
+    return this.postService.getFeed(query);
   }
 
   @Get(':id')

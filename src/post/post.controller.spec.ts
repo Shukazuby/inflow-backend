@@ -5,6 +5,7 @@ import { JwtAuthGuard } from 'src/guards/jwt.strategy';
 import { CreatePostDto, Visibility } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { HttpStatus } from '@nestjs/common';
+import { SortBy } from './dto/feed-query.dto';
 
 describe('PostController', () => {
   let controller: PostController;
@@ -16,6 +17,7 @@ describe('PostController', () => {
     findOne: jest.fn(),
     update: jest.fn(),
     remove: jest.fn(),
+    getFeed: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -108,22 +110,23 @@ describe('PostController', () => {
       expect(result).toEqual(expectedResult);
     });
   });
-
   describe('update', () => {
     it('should update a post', () => {
       // Arrange
+      const userId = 'user1';
       const postId = 'post1';
       const updatePostDto: UpdatePostDto = {
         content: 'Updated content',
       };
+      const req = { user: { id: userId } };
       const expectedResult = `This action updates a #${postId} post`;
       mockPostService.update.mockReturnValue(expectedResult);
 
       // Act
-      const result = controller.update(postId, updatePostDto);
+      const result = controller.update(postId, updatePostDto, req);
 
       // Assert
-      expect(mockPostService.update).toHaveBeenCalledWith(postId, updatePostDto);
+      expect(mockPostService.update).toHaveBeenCalledWith(postId, updatePostDto, userId);
       expect(result).toEqual(expectedResult);
     });
   });
@@ -162,6 +165,55 @@ describe('PostController', () => {
 
       // Assert
       expect(mockPostService.remove).toHaveBeenCalledWith(postId);
+      expect(result).toEqual(expectedResult);
+    });
+  });
+
+  describe('getFeed', () => {
+    it('should call service.getFeed with the provided query parameters', async () => {
+      // Arrange
+      const query = { page: 2, limit: 15, sortBy: SortBy.POPULARITY };
+      const expectedResult = {
+        data: [],
+        meta: {
+          currentPage: 2,
+          itemsPerPage: 15,
+          totalItems: 0,
+          totalPages: 0,
+          hasNextPage: false,
+          hasPreviousPage: true,
+        },
+      };
+      mockPostService.getFeed.mockResolvedValue(expectedResult);
+
+      // Act
+      const result = await controller.getFeed(query);
+
+      // Assert
+      expect(mockPostService.getFeed).toHaveBeenCalledWith(query);
+      expect(result).toEqual(expectedResult);
+    });
+
+    it('should use default values when no query parameters are provided', async () => {
+      // Arrange
+      const expectedResult = {
+        data: [],
+        meta: {
+          currentPage: 1,
+          itemsPerPage: 10,
+          totalItems: 0,
+          totalPages: 0,
+          hasNextPage: false,
+          hasPreviousPage: false,
+        },
+      };
+      mockPostService.getFeed.mockResolvedValue(expectedResult);
+
+      // Act
+      const result = await controller.getFeed({});
+
+      // Assert
+      expect(mockPostService.getFeed).toHaveBeenCalledWith({});
       expect(result).toEqual(expectedResult);
     });
   });
