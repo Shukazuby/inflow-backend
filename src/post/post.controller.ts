@@ -44,7 +44,7 @@ export class PostController {
     return this.postService.findAll();
   }
 
-  @Get('feed')
+  @Get('posts')
   @ApiOperation({ summary: 'Get a paginated feed of public posts' })  
   @ApiResponse({
     status: HttpStatus.OK,
