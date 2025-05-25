@@ -10,7 +10,8 @@ import {
   Request,
   HttpCode,
   HttpStatus,
-  Query
+  Query,
+  NotFoundException
 } from '@nestjs/common';
 import { PostService } from './post.service';
 import { CreatePostDto } from './dto/create-post.dto';
@@ -22,9 +23,11 @@ import {
   ApiOperation,
   ApiResponse,
   ApiTags,
+  ApiParam
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/guards/jwt.strategy';
 import { FeedResponseSchema } from './schema/feed-response.schema';
+import { PostDetailSchema } from './schema/post-detail.schema';
 
 @ApiTags('Post')
 @Controller('post')
@@ -60,8 +63,31 @@ export class PostController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.postService.findOne(id);
+  @ApiOperation({ summary: 'Get detailed information about a specific post' })
+  @ApiParam({ name: 'id', description: 'Post ID', type: 'string' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Returns detailed post information including NFT metadata if minted',
+    schema: PostDetailSchema,
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Post not found',
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'Invalid post ID',
+  })
+  async findOne(@Param('id') id: string) {
+    try {
+      const post = await this.postService.findOne(id);
+      return post;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new NotFoundException(`Post with ID ${id} not found`);
+    }
   }
 
   @UseGuards(JwtAuthGuard)

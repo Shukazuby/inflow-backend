@@ -4,10 +4,10 @@ import { PrismaService } from 'nestjs-prisma';
 import { NotFoundException } from '@nestjs/common';
 import { Visibility } from './dto/create-post.dto';
 import { SortBy } from './dto/feed-query.dto';
+import { PrismaClient } from '@prisma/client';
 
 describe('PostService', () => {
-  let service: PostService;
-  let prismaService: PrismaService;
+  let service: PostService;  let prismaService: PrismaService & PrismaClient;
 
   const mockPrismaService = {
     post: {
@@ -15,11 +15,21 @@ describe('PostService', () => {
       delete: jest.fn(),
       create: jest.fn(),
       findMany: jest.fn(),
+      update: jest.fn(),
       count: jest.fn(),
     },
-  };
-
-  beforeEach(async () => {
+    nftMetadata: {
+      findUnique: jest.fn(),
+    },
+    $connect: jest.fn(),
+    $disconnect: jest.fn(),
+    $transaction: jest.fn((callback) => callback(mockPrismaService)),
+    $use: jest.fn(),
+    $on: jest.fn(),
+    $executeRawUnsafe: jest.fn(),
+    $queryRawUnsafe: jest.fn(),
+    $extends: jest.fn(),
+  };  beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PostService,
@@ -28,10 +38,11 @@ describe('PostService', () => {
           useValue: mockPrismaService,
         },
       ],
-    }).compile();
+    })
+    .compile();
 
     service = module.get<PostService>(PostService);
-    prismaService = module.get<PrismaService>(PrismaService);
+    prismaService = module.get<PrismaService>(PrismaService) as PrismaService & PrismaClient;
   });
 
   afterEach(() => {
@@ -81,6 +92,7 @@ describe('PostService', () => {
           tags: createPostDto.tags,
           category: createPostDto.category,
           visibility: createPostDto.visibility,
+          isMinted: false,
         },
       });
       expect(result).toEqual({
@@ -286,5 +298,162 @@ describe('PostService', () => {
 
       await expect(service.getFeed({})).rejects.toThrow(`Failed to retrieve feed: ${errorMessage}`);
    });
+  });
+
+  describe('findOne', () => {
+    it('should return post with user info when post exists', async () => {
+      // Arrange
+      const postId = 'post-id';
+      const mockPost = {
+        id: postId,
+        content: 'Test content',
+        media: 'media.jpg',
+        tags: ['test', 'content'],
+        category: 'general',
+        visibility: 'public',
+        isMinted: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        userId: 'user-id',
+        user: {
+          id: 'user-id',
+          username: 'testuser',
+          avatarUrl: 'avatar.jpg',
+        },
+        _count: {
+          tips: 5
+        }
+      };
+      
+      mockPrismaService.post.findUnique.mockResolvedValue(mockPost);
+      
+      // Act
+      const result = await service.findOne(postId);
+      
+      // Assert
+      expect(mockPrismaService.post.findUnique).toHaveBeenCalledWith({
+        where: { id: postId },
+        include: expect.objectContaining({
+          user: expect.any(Object),
+          _count: expect.any(Object)
+        })
+      });
+      
+      expect(result).toEqual({
+        ...mockPost,
+        nftMetadata: null
+      });
+    });
+    it('should return post with NFT metadata when post is minted', async () => {
+      // Arrange
+      const postId = 'minted-post-id';
+      const mockPost = {
+        id: postId,
+        content: 'Minted content',
+        media: 'nft-image.jpg',
+        tags: ['nft', 'art'],
+        category: 'art',
+        visibility: 'public',
+        isMinted: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        userId: 'user-id',
+        user: {
+          id: 'user-id',
+          username: 'nftartist',
+          avatarUrl: 'avatar.jpg',
+        },
+        _count: {
+          tips: 10
+        }
+      };
+      
+      const mockNftMetadata = {
+        id: 'nft-meta-1',
+        postId: postId,
+        tokenId: `token-${postId}`,
+        contractAddress: '0x1234567890abcdef',
+        chain: 'ethereum',
+        mintedAt: new Date(),
+        owner: '0xowner'
+      };
+      
+      mockPrismaService.post.findUnique.mockResolvedValue(mockPost);
+      mockPrismaService.nftMetadata.findUnique.mockResolvedValue(mockNftMetadata);
+      
+      // Act
+      const result = await service.findOne(postId);
+      
+      // Assert
+      expect(mockPrismaService.post.findUnique).toHaveBeenCalledWith({
+        where: { id: postId },
+        include: expect.objectContaining({
+          user: expect.any(Object),
+          _count: expect.any(Object)
+        })
+      });
+      
+      expect(mockPrismaService.nftMetadata.findUnique).toHaveBeenCalledWith({
+        where: { postId: postId }
+      });
+      
+      expect(result).toEqual({
+        ...mockPost,
+        nftMetadata: mockNftMetadata
+      });
+    });
+    
+    it('should throw NotFoundException when post does not exist', async () => {
+      // Arrange
+      const postId = 'non-existent-id';
+      mockPrismaService.post.findUnique.mockResolvedValue(null);
+      
+      // Act & Assert
+      await expect(service.findOne(postId)).rejects.toThrow(NotFoundException);
+      expect(mockPrismaService.post.findUnique).toHaveBeenCalledWith({
+        where: { id: postId },
+        include: expect.any(Object)
+      });
+    });
+    it('should handle errors when fetching NFT metadata', async () => {
+      // Arrange
+      const postId = 'error-metadata-post-id';
+      const mockPost = {
+        id: postId,
+        content: 'Test content with NFT',
+        isMinted: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        media: 'image.jpg', 
+        tags: ['nft', 'test'],
+        category: 'test',
+        visibility: 'public',
+        userId: 'user-id',
+        user: {
+          id: 'user-id',
+          username: 'testuser',
+          avatarUrl: null,
+        },
+        _count: {
+          tips: 3
+        }
+      };
+      
+      mockPrismaService.post.findUnique.mockResolvedValue(mockPost);
+      mockPrismaService.nftMetadata.findUnique.mockRejectedValue(new Error('NFT service unavailable'));
+      
+      // Act
+      const result = await service.findOne(postId);
+      
+      // Assert
+      expect(mockPrismaService.nftMetadata.findUnique).toHaveBeenCalledWith({
+        where: { postId: postId }
+      });
+      
+      expect(result).toEqual({
+        ...mockPost,
+        nftMetadata: null
+      });
+    });
   });
 });
