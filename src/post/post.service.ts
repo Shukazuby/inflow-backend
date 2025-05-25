@@ -57,9 +57,70 @@ export class PostService {
     return `This action returns all post`;
   }
 
-  findOne(id: string) {
-    return `This action returns a #${id} post`;
+  async findOne(id: string) {
+    try {
+      const post = await this.prisma.post.findUnique({
+        where: { id },
+        include: {
+          user: {
+            select: {
+              id: true,
+              username: true,
+              avatarUrl: true,
+            },
+          },
+          _count: {
+            select: {
+              tips: true,
+            },
+          },
+        },
+      });
+
+      if (!post) {
+        throw new NotFoundException(`Post with ID ${id} not found`);
+      }
+
+      const response = {
+        ...post,
+        nftMetadata: null,
+      };
+
+      if (post.isMinted) {
+        try {
+          const nftMetadata = await this.fetchNftMetadata(id);
+          response.nftMetadata = nftMetadata;
+        } catch (error) {
+          this.logger.error(`Failed to fetch NFT metadata for post ${id}:`, error.stack);
+        }
+      }
+
+      return response;
+    } catch (error) {
+      this.logger.error(`Error fetching post ${id}:`, error.stack);
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new Error(`Failed to fetch post: ${error.message}`);
+    }
   }
+
+private async fetchNftMetadata(postId: string) {
+  try {
+    const nftMetadata = await this.prisma.nftMetadata.findUnique({
+      where: { postId },
+    });
+    
+    if (!nftMetadata) {
+      this.logger.warn(`No NFT metadata found for post ${postId}`);
+      return null;
+    }
+    return nftMetadata;
+  } catch (error) {
+    this.logger.warn(`Error fetching NFT metadata from database: ${error.message}`);
+    return null;
+  }
+}
 
   async update(id: string, updatePostDto: UpdatePostDto, userId: string) {
     const { content, media, tags, category, visibility, mint } = updatePostDto;

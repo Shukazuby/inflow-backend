@@ -14,35 +14,35 @@ datasource db {
 }
 
 model User {
-  id        String    @id @default(uuid())
-  username  String    @unique
-  email     String?   @unique
-  password  String?
+  id            String         @id @default(uuid())
+  username      String         @unique
+  email         String?        @unique
+  password      String?
   refreshToken  String?
-  bio       String?
-  avatarUrl String?
-  preferences String?
-  role      UserRole  @default(USER)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  wallets   Wallet[]  @relation("UserWallets")
+  bio           String?
+  avatarUrl     String?
+  preferences   String?
+  role          UserRole       @default(USER)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  wallets       Wallet[]       @relation("UserWallets")
   revokedTokens RevokedToken[]
-  
+
   // Relations for user stats
-  followers Follow[] @relation("UserFollowers")
-  following Follow[] @relation("UserFollowing")
-  posts     Post[]   @relation("UserPosts")
-  tipsReceived Tip[] @relation("TipsReceived")
-  tipsSent  Tip[] @relation("TipsSent")
+  followers    Follow[] @relation("UserFollowers")
+  following    Follow[] @relation("UserFollowing")
+  posts        Post[]   @relation("UserPosts")
+  tipsReceived Tip[]    @relation("TipsReceived")
+  tipsSent     Tip[]    @relation("TipsSent")
 }
 
 model Wallet {
-  id        String  @id @default(uuid())
+  id        String   @id @default(uuid())
   userId    String
-  address   String  @unique
-  isPrimary Boolean @default(false)
+  address   String   @unique
+  isPrimary Boolean  @default(false)
   createdAt DateTime @default(now())
-  user      User    @relation("UserWallets", fields: [userId], references: [id]) 
+  user      User     @relation("UserWallets", fields: [userId], references: [id])
 }
 
 model RevokedToken {
@@ -51,7 +51,7 @@ model RevokedToken {
   userId    String
   revokedAt DateTime @default(now())
 
-  user      User     @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id])
 }
 
 // New models for user stats
@@ -61,9 +61,9 @@ model Follow {
   followerId  String
   followingId String
   createdAt   DateTime @default(now())
-  
-  follower    User     @relation("UserFollowing", fields: [followerId], references: [id])
-  following   User     @relation("UserFollowers", fields: [followingId], references: [id])
+
+  follower  User @relation("UserFollowing", fields: [followerId], references: [id])
+  following User @relation("UserFollowers", fields: [followingId], references: [id])
 
   @@unique([followerId, followingId])
 }
@@ -75,44 +75,56 @@ enum Visibility {
 }
 
 model Post {
-  id         String     @id @default(uuid())
-  userId     String
-  content    String
-  media      String?
-  tags       String[]
-  category   String
-  isMinted   Boolean @default(false)
-  
+  id       String   @id @default(uuid())
+  userId   String
+  content  String
+  media    String?
+  tags     String[]
+  category String
+  isMinted Boolean  @default(false)
+
   visibility Visibility @default(public)
   createdAt  DateTime   @default(now())
   updatedAt  DateTime   @updatedAt
 
-  user       User       @relation("UserPosts", fields: [userId], references: [id])
-  tips       Tip[]      @relation("PostTips")
+  user        User         @relation("UserPosts", fields: [userId], references: [id])
+  tips        Tip[]        @relation("PostTips")
+  NftMetadata NftMetadata?
 }
 
 model Tip {
-  id        String   @id @default(uuid())
-  amount    Float
-  senderId  String
+  id         String   @id @default(uuid())
+  amount     Float
+  senderId   String
   receiverId String
-  postId    String?
-  createdAt DateTime @default(now())
-  
-  sender    User     @relation("TipsSent", fields: [senderId], references: [id])
-  receiver  User     @relation("TipsReceived", fields: [receiverId], references: [id])
-  post      Post?    @relation("PostTips", fields: [postId], references: [id])
+  postId     String?
+  createdAt  DateTime @default(now())
+
+  sender   User  @relation("TipsSent", fields: [senderId], references: [id])
+  receiver User  @relation("TipsReceived", fields: [receiverId], references: [id])
+  post     Post? @relation("PostTips", fields: [postId], references: [id])
 }
 
 // Nonce table for tracking one-time nonces
 model Nonce {
-  id        String   @id @default(uuid())
+  id        String    @id @default(uuid())
   address   String
   nonce     String
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
   expiresAt DateTime?
 
   @@unique([address])
+}
+
+model NftMetadata {
+  id              String   @id @default(cuid())
+  postId          String   @unique
+  post            Post     @relation(fields: [postId], references: [id])
+  tokenId         String
+  contractAddress String
+  chain           String
+  mintedAt        DateTime @default(now())
+  owner           String
 }
 
 enum UserRole {
