@@ -1,4 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { OneToMany } from 'typeorm';
+import { Comment } from '../../comments/entities/comment.entity';
+
+
 
 export class Post {
   @ApiProperty({ example: 1, description: 'The unique ID of the post' })
@@ -54,4 +58,15 @@ export class Post {
 
   @ApiProperty({ description: 'The author of the post', required: false })
   author?: any;
+
+  @OneToMany(() => Comment, comment => comment.post, { cascade: true })
+comments: Comment[];
+
+// Also add this computed property for comment count:
+@Column({ name: 'comment_count', default: 0 })
+commentCount: number;
 }
+function Column(arg0: { name: string; default: number; }): (target: Post, propertyKey: "commentCount") => void {
+  throw new Error('Function not implemented.');
+}
+
