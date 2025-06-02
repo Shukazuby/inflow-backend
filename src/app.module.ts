@@ -9,6 +9,9 @@ import { UsersModule } from './users/users.module';
 import { CacheModule } from '@nestjs/cache-manager';
 import { WalletModule } from './wallet/wallet.module';
 import { PostModule } from './post/post.module';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { CommentsModule } from './comments/comments.module';
+import { PostsModule } from './posts/posts.module';
 
 @Module({
   imports: [
@@ -17,6 +20,7 @@ import { PostModule } from './post/post.module';
       cache: true,
       load: [AppConfig],
     }),
+    TypeOrmModule.forRoot(),
     PrismaModule.forRoot({
       isGlobal: true,
       prismaServiceOptions: {
@@ -30,12 +34,15 @@ import { PostModule } from './post/post.module';
     }),
     CacheModule.register({
       isGlobal: true,
-      ttl: 60 * 5, // 5 minutes cache TTL
+      ttl: 60 * 5, 
     }),
     AuthModule,
     UsersModule,
     WalletModule,
     PostModule,
+    CommentsModule,
+    PostsModule,
+    UsersModule,
   ],
   controllers: [AppController],
   providers: [AppService],
