@@ -4,7 +4,7 @@ import { Repository } from 'typeorm';
 import { NotFoundException } from '@nestjs/common';
 import { CommentsService } from '../comments.service';
 import { Comment } from '../entities/comment.entity';
-import { Post } from '../../posts/entities/post.entity';
+import { Post } from '../../post/entities/post.entity';
 import { CommentOrderType } from '../dto/get-comments-query.dto';
 
 describe('CommentsService', () => {

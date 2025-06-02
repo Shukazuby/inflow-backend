@@ -9,8 +9,8 @@ import {
   UpdateDateColumn,
   Index,
 } from 'typeorm';
-import { Post } from '../../posts/entities/post.entity';
 import { User } from '../../users/entities/user.entity';
+import { Post } from '../../post/entities/post.entity';
 
 @Entity('comments')
 @Index(['postId', 'createdAt']) 
