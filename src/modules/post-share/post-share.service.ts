@@ -1,7 +1,7 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { PostService } from '../../../post/post.service';
+import { PostService } from '../../post/post.service';
 import { CreateShareDto } from './dto/create-share.dto';
 import { ShareResponseDto } from './dto/share-response.dto';
 import { PostShareActivity } from './entities/post-share-activity.entity';
