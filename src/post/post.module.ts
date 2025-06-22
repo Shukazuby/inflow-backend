@@ -6,6 +6,7 @@ import { LoggerMiddleware } from 'src/common/logger.middleware';
 @Module({
   controllers: [PostController],
   providers: [PostService],
+  exports: [PostService],
 })
 export class PostModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
