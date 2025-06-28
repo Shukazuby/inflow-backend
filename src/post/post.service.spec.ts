@@ -1,10 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { PostService } from './post.service';
 import { PrismaService } from 'nestjs-prisma';
-import { NotFoundException } from '@nestjs/common';
+import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { Visibility } from './dto/create-post.dto';
 import { SortBy } from './dto/feed-query.dto';
 import { PrismaClient } from '@prisma/client';
+import { CreatePostDto } from './dto/create-post.dto';
+import { UpdatePostDto } from './dto/update-post.dto';
+import { CreateCommentDto } from './dto/create-comment.dto';
 
 describe('PostService', () => {
   let service: PostService;  let prismaService: PrismaService & PrismaClient;
@@ -20,6 +23,11 @@ describe('PostService', () => {
     },
     nftMetadata: {
       findUnique: jest.fn(),
+    },
+    comment: {
+      create: jest.fn(),
+      findFirst: jest.fn(),
+      findMany: jest.fn(),
     },
     $connect: jest.fn(),
     $disconnect: jest.fn(),
@@ -454,6 +462,194 @@ describe('PostService', () => {
         ...mockPost,
         nftMetadata: null
       });
+    });
+  });
+
+  describe('createComment', () => {
+    const userId = 'user1';
+    const postId = 'post1';
+    const createCommentDto: CreateCommentDto = {
+      content: 'Great post! Thanks for sharing.',
+    };
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('should create a comment successfully', async () => {
+      // Arrange
+      const mockPost = { id: postId, userId: 'postOwner' };
+      const mockComment = {
+        id: 'comment1',
+        content: 'Great post! Thanks for sharing.',
+        postId,
+        userId,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        user: {
+          id: userId,
+          username: 'testuser',
+          avatarUrl: 'avatar.jpg',
+        },
+      };
+
+      mockPrismaService.post.findUnique.mockResolvedValue(mockPost);
+      mockPrismaService.comment.findFirst.mockResolvedValue(null);
+      mockPrismaService.comment.findMany.mockResolvedValue([]);
+      mockPrismaService.comment.create.mockResolvedValue(mockComment);
+
+      // Act
+      const result = await service.createComment(userId, postId, createCommentDto);
+
+      // Assert
+      expect(mockPrismaService.post.findUnique).toHaveBeenCalledWith({ where: { id: postId } });
+      expect(mockPrismaService.comment.findFirst).toHaveBeenCalledWith({
+        where: {
+          postId,
+          userId,
+          content: createCommentDto.content.trim(),
+        },
+      });
+      expect(mockPrismaService.comment.findMany).toHaveBeenCalledWith({
+        where: {
+          postId,
+          userId,
+          createdAt: {
+            gte: expect.any(Date),
+          },
+        },
+      });
+      expect(mockPrismaService.comment.create).toHaveBeenCalledWith({
+        data: {
+          content: createCommentDto.content.trim(),
+          postId,
+          userId,
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              username: true,
+              avatarUrl: true,
+            },
+          },
+        },
+      });
+      expect(result).toEqual({
+        message: 'Comment created successfully',
+        comment: mockComment,
+      });
+    });
+
+    it('should throw NotFoundException when post does not exist', async () => {
+      // Arrange
+      mockPrismaService.post.findUnique.mockResolvedValue(null);
+
+      // Act & Assert
+      await expect(service.createComment(userId, postId, createCommentDto)).rejects.toThrow(
+        new NotFoundException(`Post with ID ${postId} not found`)
+      );
+      expect(mockPrismaService.post.findUnique).toHaveBeenCalledWith({ where: { id: postId } });
+    });
+
+    it('should throw BadRequestException for duplicate comment', async () => {
+      // Arrange
+      const mockPost = { id: postId, userId: 'postOwner' };
+      const existingComment = { id: 'existingComment', content: createCommentDto.content };
+
+      mockPrismaService.post.findUnique.mockResolvedValue(mockPost);
+      mockPrismaService.comment.findFirst.mockResolvedValue(existingComment);
+
+      // Act & Assert
+      await expect(service.createComment(userId, postId, createCommentDto)).rejects.toThrow(
+        new BadRequestException('Duplicate comment detected. Please provide unique content.')
+      );
+      expect(mockPrismaService.comment.findFirst).toHaveBeenCalledWith({
+        where: {
+          postId,
+          userId,
+          content: createCommentDto.content.trim(),
+        },
+      });
+    });
+
+    it('should throw BadRequestException for rate limiting', async () => {
+      // Arrange
+      const mockPost = { id: postId, userId: 'postOwner' };
+      const recentComments = [
+        { id: 'comment1', content: 'Comment 1' },
+        { id: 'comment2', content: 'Comment 2' },
+        { id: 'comment3', content: 'Comment 3' },
+      ];
+
+      mockPrismaService.post.findUnique.mockResolvedValue(mockPost);
+      mockPrismaService.comment.findFirst.mockResolvedValue(null);
+      mockPrismaService.comment.findMany.mockResolvedValue(recentComments);
+
+      // Act & Assert
+      await expect(service.createComment(userId, postId, createCommentDto)).rejects.toThrow(
+        new BadRequestException('Too many comments. Please wait before posting another comment.')
+      );
+      expect(mockPrismaService.comment.findMany).toHaveBeenCalledWith({
+        where: {
+          postId,
+          userId,
+          createdAt: {
+            gte: expect.any(Date),
+          },
+        },
+      });
+    });
+
+    it('should throw BadRequestException for spam content', async () => {
+      // Arrange
+      const mockPost = { id: postId, userId: 'postOwner' };
+      const spamCommentDto: CreateCommentDto = {
+        content: 'BUY NOW!!! MAKE MONEY FAST!!! CLICK HERE!!!',
+      };
+
+      mockPrismaService.post.findUnique.mockResolvedValue(mockPost);
+      mockPrismaService.comment.findFirst.mockResolvedValue(null);
+      mockPrismaService.comment.findMany.mockResolvedValue([]);
+
+      // Act & Assert
+      await expect(service.createComment(userId, postId, spamCommentDto)).rejects.toThrow(
+        new BadRequestException('Comment contains suspicious patterns: excessive capitalization, spam keywords')
+      );
+    });
+
+    it('should throw BadRequestException for excessive links', async () => {
+      // Arrange
+      const mockPost = { id: postId, userId: 'postOwner' };
+      const linkSpamDto: CreateCommentDto = {
+        content: 'Check this out: https://example1.com and https://example2.com and https://example3.com and https://example4.com',
+      };
+
+      mockPrismaService.post.findUnique.mockResolvedValue(mockPost);
+      mockPrismaService.comment.findFirst.mockResolvedValue(null);
+      mockPrismaService.comment.findMany.mockResolvedValue([]);
+
+      // Act & Assert
+      await expect(service.createComment(userId, postId, linkSpamDto)).rejects.toThrow(
+        new BadRequestException('Comment contains suspicious patterns: excessive links')
+      );
+    });
+
+    it('should throw BadRequestException for repetitive characters', async () => {
+      // Arrange
+      const mockPost = { id: postId, userId: 'postOwner' };
+      const repetitiveDto: CreateCommentDto = {
+        content: 'This is great!!!!! Really amazing!!!!!',
+      };
+
+      mockPrismaService.post.findUnique.mockResolvedValue(mockPost);
+      mockPrismaService.comment.findFirst.mockResolvedValue(null);
+      mockPrismaService.comment.findMany.mockResolvedValue([]);
+
+      // Act & Assert
+      await expect(service.createComment(userId, postId, repetitiveDto)).rejects.toThrow(
+        new BadRequestException('Comment contains suspicious patterns: excessive punctuation')
+      );
     });
   });
 });

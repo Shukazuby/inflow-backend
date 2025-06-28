@@ -16,6 +16,7 @@ import {
 import { PostService } from './post.service';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
+import { CreateCommentDto } from './dto/create-comment.dto';
 import { FeedQueryDto } from './dto/feed-query.dto';
 import { Request as ExpressRequest } from 'express';
 import {
@@ -28,6 +29,7 @@ import {
 import { JwtAuthGuard } from 'src/guards/jwt.strategy';
 import { FeedResponseSchema } from './schema/feed-response.schema';
 import { PostDetailSchema } from './schema/post-detail.schema';
+import { CommentResponseSchema } from './schema/comment-response.schema';
 
 @ApiTags('Post')
 @Controller('post')
@@ -137,5 +139,41 @@ export class PostController {
     @Param('id') id: string,
   ) {
     return this.postService.remove(id);
+  }
+
+  @Post(':id/comments')
+  @ApiBearerAuth('jwt-auth')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Add a comment to a post' })
+  @ApiParam({ name: 'id', description: 'Post ID', type: 'string' })
+  @ApiResponse({
+    status: HttpStatus.CREATED,
+    description: 'Comment created successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        message: { type: 'string', example: 'Comment created successfully' },
+        comment: CommentResponseSchema,
+      },
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Post not found',
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'Invalid comment content or spam detected',
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'Unauthorized',
+  })
+  async createComment(
+    @Param('id') postId: string,
+    @Body() createCommentDto: CreateCommentDto,
+    @Request() req: ExpressRequest,
+  ) {
+    return this.postService.createComment(req['user'].id, postId, createCommentDto);
   }
 }

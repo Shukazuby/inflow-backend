@@ -34,6 +34,7 @@ model User {
   posts        Post[]   @relation("UserPosts")
   tipsReceived Tip[]    @relation("TipsReceived")
   tipsSent     Tip[]    @relation("TipsSent")
+  comments     Comment[] @relation("UserComments")
 }
 
 model Wallet {
@@ -90,6 +91,7 @@ model Post {
   user        User         @relation("UserPosts", fields: [userId], references: [id])
   tips        Tip[]        @relation("PostTips")
   NftMetadata NftMetadata?
+  comments    Comment[]    @relation("PostComments")
 }
 
 model Tip {
@@ -125,6 +127,21 @@ model NftMetadata {
   chain           String
   mintedAt        DateTime @default(now())
   owner           String
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  content   String
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  post Post @relation("PostComments", fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation("UserComments", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@index([userId])
 }
 
 enum UserRole {
