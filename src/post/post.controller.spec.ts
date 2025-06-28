@@ -4,7 +4,8 @@ import { PostService } from './post.service';
 import { JwtAuthGuard } from 'src/guards/jwt.strategy';
 import { CreatePostDto, Visibility } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
-import { NotFoundException } from '@nestjs/common';
+import { CreateCommentDto } from './dto/create-comment.dto';
+import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { SortBy } from './dto/feed-query.dto';
 
 describe('PostController', () => {
@@ -18,6 +19,7 @@ describe('PostController', () => {
     update: jest.fn(),
     remove: jest.fn(),
     getFeed: jest.fn(),
+    createComment: jest.fn(),
   };
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -299,6 +301,102 @@ describe('PostController', () => {
       // Assert
       expect(service.getFeed).toHaveBeenCalledWith({});
       expect(result).toEqual(expectedResult);
+    });
+  });
+
+  describe('createComment', () => {
+    it('should create a new comment successfully', async () => {
+      // Arrange
+      const userId = 'user1';
+      const postId = 'post1';
+      const req = { user: { id: userId } };
+      const createCommentDto: CreateCommentDto = {
+        content: 'Great post! Thanks for sharing.',
+      };
+      const expectedResult = {
+        message: 'Comment created successfully',
+        comment: {
+          id: 'comment1',
+          content: 'Great post! Thanks for sharing.',
+          postId,
+          userId,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          user: {
+            id: userId,
+            username: 'testuser',
+            avatarUrl: 'avatar.jpg',
+          },
+        },
+      };
+      mockPostService.createComment.mockResolvedValue(expectedResult);
+
+      // Act
+      const result = await controller.createComment(postId, createCommentDto, req as any);
+
+      // Assert
+      expect(service.createComment).toHaveBeenCalledWith(userId, postId, createCommentDto);
+      expect(result).toEqual(expectedResult);
+    });
+
+    it('should throw NotFoundException when post does not exist', async () => {
+      // Arrange
+      const userId = 'user1';
+      const postId = 'non-existent-post';
+      const req = { user: { id: userId } };
+      const createCommentDto: CreateCommentDto = {
+        content: 'This comment should fail.',
+      };
+      mockPostService.createComment.mockRejectedValue(new NotFoundException(`Post with ID ${postId} not found`));
+
+      // Act & Assert
+      await expect(controller.createComment(postId, createCommentDto, req as any)).rejects.toThrow(NotFoundException);
+      expect(service.createComment).toHaveBeenCalledWith(userId, postId, createCommentDto);
+    });
+
+    it('should throw BadRequestException for duplicate comment', async () => {
+      // Arrange
+      const userId = 'user1';
+      const postId = 'post1';
+      const req = { user: { id: userId } };
+      const createCommentDto: CreateCommentDto = {
+        content: 'Duplicate comment content.',
+      };
+      mockPostService.createComment.mockRejectedValue(new BadRequestException('Duplicate comment detected. Please provide unique content.'));
+
+      // Act & Assert
+      await expect(controller.createComment(postId, createCommentDto, req as any)).rejects.toThrow(BadRequestException);
+      expect(service.createComment).toHaveBeenCalledWith(userId, postId, createCommentDto);
+    });
+
+    it('should throw BadRequestException for spam content', async () => {
+      // Arrange
+      const userId = 'user1';
+      const postId = 'post1';
+      const req = { user: { id: userId } };
+      const createCommentDto: CreateCommentDto = {
+        content: 'BUY NOW!!! MAKE MONEY FAST!!! CLICK HERE!!!',
+      };
+      mockPostService.createComment.mockRejectedValue(new BadRequestException('Comment contains suspicious patterns: excessive capitalization, spam keywords'));
+
+      // Act & Assert
+      await expect(controller.createComment(postId, createCommentDto, req as any)).rejects.toThrow(BadRequestException);
+      expect(service.createComment).toHaveBeenCalledWith(userId, postId, createCommentDto);
+    });
+
+    it('should throw BadRequestException for rate limiting', async () => {
+      // Arrange
+      const userId = 'user1';
+      const postId = 'post1';
+      const req = { user: { id: userId } };
+      const createCommentDto: CreateCommentDto = {
+        content: 'Another comment.',
+      };
+      mockPostService.createComment.mockRejectedValue(new BadRequestException('Too many comments. Please wait before posting another comment.'));
+
+      // Act & Assert
+      await expect(controller.createComment(postId, createCommentDto, req as any)).rejects.toThrow(BadRequestException);
+      expect(service.createComment).toHaveBeenCalledWith(userId, postId, createCommentDto);
     });
   });
 });
